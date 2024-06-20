@@ -79,14 +79,17 @@ python query_data.py "<query>"
 $ python query_data.py "Tell me about Smoothed Particle Hydrodynamics"
 ```
 ```output
-Response:  Smoothed Particle Hydrodynamics (SPH) is a mesh-free Lagrangian particle method 
-used for simulating fluid and granular materials. The method was first introduced by 
-Gingold & Monaghan in 1977 and has been developed further since then.
+Response:  Smoothed Particle Hydrodynamics (SPH) is a mesh-free Lagrangian 
+particle method used for simulating fluid and granular materials. The method was
+first introduced by Gingold & Monaghan in 1977 and has been developed further 
+since then.
 
-The key feature of SPH is the representation of continuous functions using discrete particles, 
-each with a mass and position. By calculating the interactions between particles, various physical 
-properties like density, pressure, and velocity can be approximated. This allows for the simulation 
-of complex problems such as granular flows, free-surface flows, and even solid boundary conditions.
+The key feature of SPH is the representation of continuous functions using 
+discrete particles, each with a mass and position. By calculating the 
+interactions between particles, various physical properties like density, 
+pressure, and velocity can be approximated. This allows for the simulation of 
+complex problems such as granular flows, free-surface flows, and even solid 
+boundary conditions.
 
 In the context provided, several studies using SPH are mentioned:
 - Liu et al. (2012) - On the treatment of solid boundaries in SPH
@@ -95,11 +98,16 @@ In the context provided, several studies using SPH are mentioned:
 - Cherfils et al. (2012) - JOSEPHINE: A parallel SPH code for free-surface flows
 - Domínguez et al. (2011) - Neighbour lists in smoothed particle hydrodynamics
 
-These studies demonstrate the versatility of SPH and its applications in various fields, including 
-geotechnical engineering, earthquake simulations, and granular flow modeling under different 
-boundary conditions. Furthermore, the context also mentions parallelization and high-performance 
-computing (HPC) for large-scale simulations using SPH.
-Sources: ['data/1-s2.0-S0266352X20300379-main-1.pdf:21:3', 'data/s11440-021-01162-4.pdf:4:0', 'data/1-s2.0-S0266352X20300379-main-1.pdf:20:9', 'data/1-s2.0-S0266352X20300379-main-1.pdf:2:1', 'data/1-s2.0-S0266352X20300379-main-1.pdf:20:8']
+These studies demonstrate the versatility of SPH and its applications in various 
+fields, including geotechnical engineering, earthquake simulations, and granular
+flow modeling under different boundary conditions. Furthermore, the context also
+mentions parallelization and high-performance computing (HPC) for large-scale 
+simulations using SPH.
+Sources: ['data/1-s2.0-S0266352X20300379-main-1.pdf:21:3', 
+'data/s11440-021-01162-4.pdf:4:0', 
+'data/1-s2.0-S0266352X20300379-main-1.pdf:20:9', 
+'data/1-s2.0-S0266352X20300379-main-1.pdf:2:1', 
+'data/1-s2.0-S0266352X20300379-main-1.pdf:20:8']
 ```
 
 ## Known working models
