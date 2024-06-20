@@ -28,7 +28,7 @@ mkdir -p $ollama_models $ollama_tmp
 #      OLLAMA_LLM_LIBRARY         Set LLM library to bypass autodetection
 #      OLLAMA_MAX_VRAM            Maximum VRAM
 
-export OLLAMA_HOST=$SLURM_NODELIST
+export OLLAMA_HOST=$SLURM_NODELIST OLLAMA_MODELS=$ollama_models
 
 apptainer run --nv \
      -B $TMPDIR:/tmp \
