@@ -2,11 +2,13 @@ import argparse
 import os
 import shutil
 from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_embedding_function, get_config
 from langchain_community.vectorstores.chroma import Chroma
 import tomllib
+import glob
 
 
 CHROMA_PATH = "chroma"
@@ -30,8 +32,12 @@ def main():
     add_to_chroma(chunks, url, embedding_model)
 
 def load_documents():
+    # load PDFs
     document_loader = PyPDFDirectoryLoader(DATA_PATH)
-    return document_loader.load()
+    loaded_docs = document_loader.load()
+    # load HTMLs
+    loaded_docs += [UnstructuredHTMLLoader(doc).load()[0] for doc in glob.glob("data/*.html")]
+    return loaded_docs
 
 
 def split_documents(documents: list[Document]):
