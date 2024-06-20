@@ -4,8 +4,6 @@ Setup to run on WEHI Milton.
 
 ## Setup
 
-1. Setup models directory to make sure 
-
 1. Get Ollama
 
 ```bash
@@ -25,7 +23,7 @@ This will save models to `/vast/scratch/users/$USER/ollama-models` and store tmp
 
 Change `host = "gpu-a100-n01"` to the correct node name.
 
-3. Download models
+4. Download models
 
 This downloads models into `/vast`
 ```bash
@@ -41,7 +39,7 @@ Models needed to run repo as-is:
 Embedding generation model is probably most important. Note that you can't use the model
 until it's been pulled.
 
-4. Setup python environment
+5. Setup python environment
 
 ```bash
 python -m venv <env>
@@ -49,7 +47,7 @@ python -m venv <env>
 pip install -r requirements.txt
 ```
 
-5. Add data to database
+6. Add data to database
 
 ```
 # need newer version of sqlite than what the system has
@@ -59,7 +57,7 @@ module load sqlite
 python populate_database.py
 ```
 
-6. Run tests
+7. Run tests
 
 ```bash
 pytest
@@ -67,7 +65,7 @@ pytest
 
 This checks two basic rules from the Monopoly and Ticket to Ride.
 
-7. Run your queries
+8. Run your queries
 
 ```bash
 python query_data.py "<query>"
