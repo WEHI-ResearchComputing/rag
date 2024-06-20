@@ -49,7 +49,7 @@ pip install -r requirements.txt
 
 6. Add data to database
 
-```
+```bash
 # need newer version of sqlite than what the system has
 module load sqlite
 
@@ -124,3 +124,48 @@ I've tested:
 
 The tests only pass with either `nomic-embed-text` or `mxbai-embed-large` for embeddings,
 and `mistral` for the LLM.
+
+## Downloading RC2 docs
+
+### Setup (On Milton)
+
+1. Get `npm`
+
+On Milton:
+
+```bash
+module load nodejs
+```
+
+Need to setup a user package directory
+
+```bash
+NPM_PACKAGES=/vast/scratch/users/$USER/npm-packages
+mkdir $NPM_PACKAGES
+npm config set prefix "$NPM_PACKAGES"
+```
+
+2. Install `m365`
+
+```
+npm i -g @pnp/cli-microsoft365
+```
+
+### Run
+
+```bash
+bash download-pages.sh
+```
+
+### Post-process
+
+empty pages need to be deleted
+
+```bash
+# covers pages with no content
+find data -size 0 -delete
+# covers pages with a space as their content
+find data -size 1 -delete
+```
+
+Then you can run the populate database script (step 6).
