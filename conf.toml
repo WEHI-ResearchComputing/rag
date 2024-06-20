@@ -1,0 +1,5 @@
+[ollama]
+host = "gpu-a100-n01"
+port = 11434
+embedding_model = "mxbai-embed-large"
+llm_model = "mistral"

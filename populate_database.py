@@ -1,16 +1,17 @@
 import argparse
 import os
 import shutil
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
-from get_embedding_function import get_embedding_function
-from langchain.vectorstores.chroma import Chroma
+from get_embedding_function import get_embedding_function, get_config
+from langchain_community.vectorstores.chroma import Chroma
+import tomllib
 
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
-
+CONF_PATH = "conf.toml"
 
 def main():
 
@@ -25,8 +26,8 @@ def main():
     # Create (or update) the data store.
     documents = load_documents()
     chunks = split_documents(documents)
-    add_to_chroma(chunks)
-
+    url, embedding_model, _ = get_config(CONF_PATH)
+    add_to_chroma(chunks, url, embedding_model)
 
 def load_documents():
     document_loader = PyPDFDirectoryLoader(DATA_PATH)
@@ -43,10 +44,10 @@ def split_documents(documents: list[Document]):
     return text_splitter.split_documents(documents)
 
 
-def add_to_chroma(chunks: list[Document]):
+def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
     # Load the existing database.
     db = Chroma(
-        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function()
+        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function(ollama_base_url, embedding_model)
     )
 
     # Calculate Page IDs.

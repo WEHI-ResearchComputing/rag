@@ -1,4 +1,4 @@
-from query_data import query_rag
+from query_data import query_rag, get_config
 from langchain_community.llms.ollama import Ollama
 
 EVAL_PROMPT = """
@@ -22,6 +22,7 @@ def test_ticket_to_ride_rules():
         expected_response="10 points",
     )
 
+CONF_PATH = "conf.toml"
 
 def query_and_validate(question: str, expected_response: str):
     response_text = query_rag(question)
@@ -29,7 +30,8 @@ def query_and_validate(question: str, expected_response: str):
         expected_response=expected_response, actual_response=response_text
     )
 
-    model = Ollama(model="mistral")
+    url, _, llm_model = get_config(CONF_PATH)
+    model = Ollama(base_url=url, model=llm_model)
     evaluation_results_str = model.invoke(prompt)
     evaluation_results_str_cleaned = evaluation_results_str.strip().lower()
 
