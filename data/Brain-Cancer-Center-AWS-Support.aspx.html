@@ -1,0 +1,11 @@
+<h2>Data Transfer through S3</h2>
+<h3>BrainPop/Glimmer Project</h3>
+<h4>Access List</h4><ul><li>Elizabeth Mason</li><li>Saskia Freytag</li><li>Montana Spiteri</li><li>Jim Whittle</li><li>Sarah Best</li><li>Rob Tobler</li><li>Christine White</li></ul><h4>Bucket name&nbsp;</h4><p style="margin-left:40px;">glimmerbrainpop</p>
+<h3>AWS Inline Policy Used for the group</h3>
+<h4>Bucket Creation</h4>
+<h2>Logging into AWS</h2><p>After following instructions to set up your password for the new user account created. You can login through <a href="https://d-97677d71dd.awsapps.com/start#/" data-interception="off" target="_blank" rel="noopener noreferrer">this URL</a>.</p><p>Once logged in, you will see the below page</p>
+<p>You can choose whether to use the web interface to access s3, by choosing “Management Console” or getting instruction on how to set up command line.</p>
+<p>On Milton, we have a module for aws cli</p><pre>module load awscli/2.5.2</pre>
+<p>Once loaded and you have followed instructions to configure your cmd. you can start using the aws commands.</p><p>&nbsp;</p><pre>$ aws s3 ls<br>2023-07-04 18:35:56 glimmerbrainpop</pre>
+<h3>Making Uploaded Objects One Zone Infrequent Access.</h3>
+<p>One Zone Infrequent Access cannot be set on the level of S3 but on the object level. So as you upload &nbsp;file(s), please make sure you set up the <strong>Storage class</strong> as <span class="fontColorThemeSecondary"><strong>One Zone-IA&nbsp;</strong></span></p>
