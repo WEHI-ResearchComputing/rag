@@ -1,5 +1,6 @@
 #!/bin/bash
-#SBATCH -c 48 --mem 400G --gres gpu:A100:1 -p gpuq
+#SBATCH -c 24 --mem 100G 
+#SBATCH --gres gpu:A30:1 -p gpuq
 #SBATCH --output ollama-server.log
 
 set -eu
