@@ -28,7 +28,7 @@ def main():
     query_rag(query_text)
 
 
-def query_rag(query_text: str):
+def query_rag(query_text: str, history: str = ''):
     # Prepare the DB.
     url, embedding_model, llm_model = get_config(CONF_PATH)
     embedding_function = get_embedding_function(url, embedding_model)
