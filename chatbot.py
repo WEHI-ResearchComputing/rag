@@ -15,7 +15,11 @@ thee = gradio.themes.Default(
     font=["Arial", "sans-serif"]
 )
 
-with gradio.Blocks(theme=thee) as demo:
+with gradio.Blocks(
+    title = "WEHI Local GPT", 
+    theme=thee,
+    fill_height=True
+) as demo:
     with gradio.Group():
         with gradio.Row():
             data_path = gradio.Textbox(label="Data Path")
@@ -40,12 +44,11 @@ with gradio.Blocks(theme=thee) as demo:
 
         gradio.ChatInterface(
             query_data.query_rag, 
-            title = "WEHI Local GPT",
-            description = "A Local LLM that can answer questions about your text-based data!",
             undo_btn = None,
             clear_btn = None,
             fill_height = True,
-            additional_inputs=[llm_model, embedding_model]
+            additional_inputs=[llm_model, embedding_model],
+            chatbot=gradio.Chatbot(scale=1)
         )
 
 demo.launch(
