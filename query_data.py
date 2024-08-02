@@ -25,12 +25,14 @@ def main():
     parser.add_argument("query_text", type=str, help="The query text.")
     args = parser.parse_args()
     query_text = args.query_text
-    query_rag(query_text)
+    _, embedding_model, llm_model = get_config(CONF_PATH)
+    query_rag(query_text, llm_model, embedding_model)
 
 
-def query_rag(query_text: str, history: str = ''):
+def query_rag(query_text: str, history: str = '', llm_model = '', embedding_model = ''):
+    print(llm_model, embedding_model)
     # Prepare the DB.
-    url, embedding_model, llm_model = get_config(CONF_PATH)
+    url, _, _ = get_config(CONF_PATH)
     embedding_function = get_embedding_function(url, embedding_model)
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
 

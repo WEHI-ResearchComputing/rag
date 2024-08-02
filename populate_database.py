@@ -26,17 +26,22 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    documents = load_documents()
-    chunks = split_documents(documents)
-    url, embedding_model, _ = get_config(CONF_PATH)
-    add_to_chroma(chunks, url, embedding_model)
+    _, embedding_model, _ = get_config(CONF_PATH)
+    add_data_to_database(DATA_PATH, embedding_model)
 
-def load_documents():
+def add_data_to_database(data_path, embedding_model):
+    documents = load_documents(data_path)
+    chunks = split_documents(documents)
+    url, _, _ = get_config(CONF_PATH)
+    return add_to_chroma(chunks, url, embedding_model) + f" with {embedding_model} embedding model."
+    
+
+def load_documents(data_path):
     # load PDFs
-    document_loader = PyPDFDirectoryLoader(DATA_PATH)
+    document_loader = PyPDFDirectoryLoader(data_path)
     loaded_docs = document_loader.load()
     # load HTMLs
-    loaded_docs += [UnstructuredHTMLLoader(doc).load()[0] for doc in glob.glob("data/*.html")]
+    loaded_docs += [UnstructuredHTMLLoader(doc).load()[0] for doc in glob.glob(f"{data_path}/*.html")]
     return loaded_docs
 
 
@@ -75,8 +80,10 @@ def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
         new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
         db.add_documents(new_chunks, ids=new_chunk_ids)
         db.persist()
+        return f"👉 Added new documents: {len(new_chunks)}"
     else:
         print("✅ No new documents to add")
+        return "✅ No new documents to add"
 
 
 def calculate_chunk_ids(chunks):
