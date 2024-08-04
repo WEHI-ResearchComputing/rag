@@ -55,5 +55,6 @@ demo.launch(
     ssl_verify=False, 
     server_name=args.host, 
     root_path=f"/node/{args.host}/{args.port}",
-    server_port=args.port
+    server_port=args.port,
+    auth=("test", "123"),
 )
