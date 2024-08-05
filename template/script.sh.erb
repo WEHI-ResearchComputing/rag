@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
 
 cd /vast/projects/RCP/rag-tutorial-v2
-venv/bin/python chatbot.py --port $port --host $host
+
+# setup ollama dirs
+ollama_models=/vast/scratch/users/$USER/ollama-models
+ollama_tmp=/vast/scratch/users/$USER/tmp
+
+mkdir -p $ollama_models $ollama_tmp
+
+export OLLAMA_MODELS=$ollama_models 
+
+ollama_port=$(find_port)
+
+export OLLAMA_HOST="localhost:$ollama_port"
+
+apptainer run --nv \
+     -B $TMPDIR:/tmp \
+     -B $ollama_models:$HOME/.ollama/models \
+     -B /vast,/stornext \
+     docker://ollama/ollama 2> ollama.err > ollama.out &
+venv/bin/python chatbot.py --port $port --host $host --ollama-port $ollama_port

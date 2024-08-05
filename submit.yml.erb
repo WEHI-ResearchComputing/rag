@@ -31,3 +31,7 @@ script:
   native: # ... array of command line arguments ...
     - "--mem"
     - "4G"
+    - "--gres"
+    - "gpu:P100:1"
+    - "-p"
+    - "gpuq"

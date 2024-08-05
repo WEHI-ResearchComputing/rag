@@ -29,7 +29,7 @@
 # Export the module function if it exists
 [[ $(type -t module) == "function" ]] && export -f module
 
-module load sqlite
+module load sqlite apptainer/1.2.3
 
 # Find available port to run server on
 #port=$(find_port)
