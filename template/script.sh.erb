@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-cd /vast/projects/RCP/rag-tutorial-v2
-
 # setup ollama dirs
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
@@ -20,4 +18,4 @@ apptainer run --nv \
      -B /vast,/stornext \
      --env OLLAMA_HOST=localhost:$ollama_port \
      docker://ollama/ollama 2> ollama.err > ollama.out &
-venv/bin/python chatbot.py --port $port --host $host --ollama-port $ollama_port
+apptainer run oras://ghcr.io/wehi-researchcomputing/rag:0.0.1 --port $port --host $host --ollama-port $ollama_port
