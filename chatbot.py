@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
+
 import gradio
-import query_data
 import socket
-import populate_database
 import argparse
 from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
 from langchain_community.document_loaders import UnstructuredHTMLLoader
@@ -9,6 +9,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.embeddings.ollama import OllamaEmbeddings
 from langchain_community.vectorstores.chroma import Chroma
+from langchain.prompts import ChatPromptTemplate
+from langchain_community.llms.ollama import Ollama
 import glob
 
 def get_embeddings(base_url="http://localhost:11434", model="nomic-embed-text"):
@@ -19,6 +21,15 @@ def get_embeddings(base_url="http://localhost:11434", model="nomic-embed-text"):
     return embeddings
 
 class embeddings_db:
+    PROMPT_TEMPLATE = """
+Answer the question based only on the following context:
+
+{context}
+
+---
+
+Answer the question based on the above context: {question}
+"""
     def __init__(self, ollama_url):
         self.ollama_url = ollama_url
     
@@ -102,6 +113,28 @@ class embeddings_db:
 
         return chunks
 
+    def query_rag(self, query_text: str, history: str = '', llm_model = '', embedding_model = ''):
+        print(llm_model, embedding_model)
+        # Prepare the DB.
+        embedding_function = get_embeddings(self.ollama_url, embedding_model)
+        db = Chroma(persist_directory="chroma", embedding_function=embedding_function)
+
+        # Search the DB.
+        results = db.similarity_search_with_score(query_text, k=5)
+
+        context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+        prompt_template = ChatPromptTemplate.from_template(self.PROMPT_TEMPLATE)
+        prompt = prompt_template.format(context=context_text, question=query_text)
+        # print(prompt)
+
+        model = Ollama(base_url=self.ollama_url, model=llm_model)
+        response_text = model.invoke(prompt)
+
+        sources = [doc.metadata.get("id", None) for doc, _score in results]
+        formatted_response = f"Response: {response_text}\nSources: {sources}"
+        print(formatted_response)
+        return response_text
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--port", type=int, help="The port that the app will run on", default=7860)
 parser.add_argument("--host", type=str, help="The host the app is running on", default=socket.gethostname())
@@ -144,7 +177,7 @@ with gradio.Blocks(
         )
 
         gradio.ChatInterface(
-            query_data.query_rag, 
+            db.query_rag, 
             undo_btn = None,
             clear_btn = None,
             fill_height = True,

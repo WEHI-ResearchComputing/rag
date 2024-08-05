@@ -12,11 +12,12 @@ export OLLAMA_MODELS=$ollama_models
 
 ollama_port=$(find_port)
 
-export OLLAMA_HOST="localhost:$ollama_port"
+echo Ollama will run on port $ollama_port
 
 apptainer run --nv \
      -B $TMPDIR:/tmp \
      -B $ollama_models:$HOME/.ollama/models \
      -B /vast,/stornext \
+     --env OLLAMA_HOST=localhost:$ollama_port \
      docker://ollama/ollama 2> ollama.err > ollama.out &
 venv/bin/python chatbot.py --port $port --host $host --ollama-port $ollama_port
