@@ -11,9 +11,12 @@ from langchain_community.embeddings.ollama import OllamaEmbeddings
 from langchain_community.vectorstores.chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
-import glob
+import glob, getpass
 
 def get_embeddings(base_url="http://localhost:11434", model="nomic-embed-text"):
+    """
+    Wrapper function used to create the embedding generator object.
+    """
     # embeddings = BedrockEmbeddings(
     #     credentials_profile_name="default", region_name="us-east-1"
     # )
@@ -33,10 +36,23 @@ Answer the question based on the above context: {question}
     def __init__(self, ollama_url):
         self.ollama_url = ollama_url
     
-    def add_data(self, data_path, embedding_model):
+    def add_data(self, data_path, embedding_model, db_path):
+        progress_txt = "Testing Ollama server connection..."
+        yield progress_txt
+        try:
+            get_embeddings(self.ollama_url, embedding_model).embed_documents(["This is a test"])
+        except ValueError:
+            yield "\n❌ Connection failed! Adding data failed!"
+            return
+        yield (progress_txt := progress_txt + "\n✅ Connection succeeded!")
+        yield (progress_txt := progress_txt + "\n📄 Loading documents...")
         documents = self.load_documents(data_path)
+        yield (progress_txt := progress_txt + "\n✅ Documents loaded!")
+        yield (progress_txt := progress_txt + "\n➗ Splitting documents into chunks...")
         chunks = self.split_documents(documents)
-        return self.add_to_chroma(chunks, self.ollama_url, embedding_model) + f" with {embedding_model} embedding model."
+        yield (progress_txt := progress_txt + "\n✅ Documents splitted!")
+        yield (progress_txt := progress_txt + "\n📊 Adding documents to database...")
+        yield (progress_txt := progress_txt + '\n' + self.add_to_chroma(chunks, self.ollama_url, embedding_model, db_path) + f" with {embedding_model} embedding model.")
 
     def load_documents(self, data_path):
         # load PDFs
@@ -55,10 +71,10 @@ Answer the question based on the above context: {question}
         )
         return text_splitter.split_documents(documents)
     
-    def add_to_chroma(self, chunks: list[Document], ollama_base_url, embedding_model):
+    def add_to_chroma(self, chunks: list[Document], ollama_base_url, embedding_model, db_path = "chroma"):
         # Load the existing database.
         db = Chroma(
-            persist_directory="chroma", embedding_function=get_embeddings(ollama_base_url, embedding_model)
+            persist_directory=db_path, embedding_function=get_embeddings(ollama_base_url, embedding_model)
         )
 
         # Calculate Page IDs.
@@ -113,11 +129,11 @@ Answer the question based on the above context: {question}
 
         return chunks
 
-    def query_rag(self, query_text: str, history: str = '', llm_model = '', embedding_model = ''):
-        print(llm_model, embedding_model)
+    def query_rag(self, query_text: str, history: str = '', llm_model = '', embedding_model = '', db_path = 'chroma'):
+        
         # Prepare the DB.
         embedding_function = get_embeddings(self.ollama_url, embedding_model)
-        db = Chroma(persist_directory="chroma", embedding_function=embedding_function)
+        db = Chroma(persist_directory=db_path, embedding_function=embedding_function)
 
         # Search the DB.
         results = db.similarity_search_with_score(query_text, k=5)
@@ -128,12 +144,15 @@ Answer the question based on the above context: {question}
         # print(prompt)
 
         model = Ollama(base_url=self.ollama_url, model=llm_model)
-        response_text = model.invoke(prompt)
+        response_text = "Response:\n"
+        yield response_text
+        for response_chunk in model.stream(prompt):
+            response_text += response_chunk
+            yield response_text
 
         sources = [doc.metadata.get("id", None) for doc, _score in results]
-        formatted_response = f"Response: {response_text}\nSources: {sources}"
-        print(formatted_response)
-        return response_text
+        response_text += f"\nSources:\n{sources}"
+        yield response_text
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--port", type=int, help="The port that the app will run on", default=7860)
@@ -157,6 +176,7 @@ with gradio.Blocks(
     with gradio.Group():
         with gradio.Row():
             data_path = gradio.Textbox(label="Data Path")
+            db_path = gradio.Textbox(label="Embedding Database Path", value=f"/vast/scratch/users/{getpass.getuser()}/rag_chromadb")
             embedding_model = gradio.Dropdown(
                 ["mxbai-embed-large", "nomic-embed-text", "snowflake-arctic-embed:22m"], 
                 value="mxbai-embed-large",
@@ -166,7 +186,7 @@ with gradio.Blocks(
         add_data_output = gradio.Textbox(label="Add Data Output")
     add_data_btn.click(
         fn=db.add_data, 
-        inputs=[data_path, embedding_model], 
+        inputs=[data_path, embedding_model, db_path], 
         outputs=add_data_output
     )
     with gradio.Group():
@@ -181,7 +201,7 @@ with gradio.Blocks(
             undo_btn = None,
             clear_btn = None,
             fill_height = True,
-            additional_inputs=[llm_model, embedding_model],
+            additional_inputs=[llm_model, embedding_model, db_path],
             chatbot=gradio.Chatbot(scale=1)
         )
 
