@@ -11,7 +11,7 @@ from langchain_community.embeddings.ollama import OllamaEmbeddings
 from langchain_community.vectorstores.chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
-import glob, getpass
+import glob, getpass, subprocess, os
 
 def get_embeddings(base_url="http://localhost:11434", model="nomic-embed-text"):
     """
@@ -41,8 +41,8 @@ Answer the question based on the above context: {question}
         yield progress_txt
         try:
             get_embeddings(self.ollama_url, embedding_model).embed_documents(["This is a test"])
-        except ValueError:
-            yield "\n❌ Connection failed! Adding data failed!"
+        except Exception as e:
+            yield f"\n❌ Connection failed! Adding data failed!\nError message:\n{str(e)}"
             return
         yield (progress_txt := progress_txt + "\n✅ Connection succeeded!")
         yield (progress_txt := progress_txt + "\n📄 Loading documents...")
@@ -52,7 +52,10 @@ Answer the question based on the above context: {question}
         chunks = self.split_documents(documents)
         yield (progress_txt := progress_txt + "\n✅ Documents splitted!")
         yield (progress_txt := progress_txt + "\n📊 Adding documents to database...")
-        yield (progress_txt := progress_txt + '\n' + self.add_to_chroma(chunks, self.ollama_url, embedding_model, db_path) + f" with {embedding_model} embedding model.")
+        try:
+            yield (progress_txt := progress_txt + '\n' + self.add_to_chroma(chunks, self.ollama_url, embedding_model, db_path) + f" with {embedding_model} embedding model.")
+        except Exception as e:
+            yield progress_txt + f'\n❌ Something went wrong! Error message:\n{str(e)}'
 
     def load_documents(self, data_path):
         # load PDFs
@@ -133,7 +136,11 @@ Answer the question based on the above context: {question}
         
         # Prepare the DB.
         embedding_function = get_embeddings(self.ollama_url, embedding_model)
-        db = Chroma(persist_directory=db_path, embedding_function=embedding_function)
+        try:
+            db = Chroma(persist_directory=db_path, embedding_function=embedding_function)
+        except Exception as e:
+            yield f"❌ Something went wrong when trying to retrieve data from the RAG! Error message:\n{str(e)}"
+            return
 
         # Search the DB.
         results = db.similarity_search_with_score(query_text, k=5)
@@ -141,14 +148,16 @@ Answer the question based on the above context: {question}
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
         prompt_template = ChatPromptTemplate.from_template(self.PROMPT_TEMPLATE)
         prompt = prompt_template.format(context=context_text, question=query_text)
-        # print(prompt)
 
         model = Ollama(base_url=self.ollama_url, model=llm_model)
         response_text = "Response:\n"
         yield response_text
-        for response_chunk in model.stream(prompt):
-            response_text += response_chunk
-            yield response_text
+        try:
+            for response_chunk in model.stream(prompt):
+                response_text += response_chunk
+                yield response_text
+        except Exception as e:
+            yield f"{response_text}\n❌ Something went wrong when supplying the query to the LLM! Error message:\n{str(e)}"
 
         sources = [doc.metadata.get("id", None) for doc, _score in results]
         response_text += f"\nSources:\n{sources}"
