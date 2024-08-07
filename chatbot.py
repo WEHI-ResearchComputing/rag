@@ -297,7 +297,7 @@ Answer the question based on the above context: {question}
         current_chunk_index = 0
 
         for chunk in chunks:
-            source = chunk.metadata.get("source")
+            source = os.path.basename(chunk.metadata.get("source"))
             page = chunk.metadata.get("page")
             current_page_id = f"{source}:{page}"
 
