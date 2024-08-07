@@ -89,15 +89,11 @@ Answer the question based on the above context: {question}
         print(f"Number of existing documents in DB: {len(existing_ids)}")
 
         # Only add documents that don't exist in the DB.
-        new_chunks = []
-        for chunk in chunks_with_ids:
-            if chunk.metadata["id"] not in existing_ids:
-                new_chunks.append(chunk)
+        new_chunks = [chunk for chunk in chunks_with_ids if chunk.metadata["id"] not in existing_ids]
 
         if len(new_chunks):
             print(f"👉 Adding new documents: {len(new_chunks)}")
-            new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
-            db.add_documents(new_chunks, ids=new_chunk_ids)
+            db.add_documents(new_chunks)
             db.persist()
             return f"👉 Added new documents: {len(new_chunks)}"
         else:
