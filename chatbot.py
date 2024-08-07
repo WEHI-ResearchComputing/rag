@@ -163,12 +163,14 @@ Answer the question based on the above context: {question}
         yield response_text
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--port", type=int, help="The port that the app will run on", default=7860)
-parser.add_argument("--host", type=str, help="The host the app is running on", default=socket.gethostname())
-parser.add_argument("--ollama-port", type=int, help="The port that the Ollama server is running on", default=11434)
+parser.add_argument("--port", type=int, help="The port that the app will run on.", default=7860)
+parser.add_argument("--host", type=str, help="The host the app is running on.", default=socket.gethostname())
+parser.add_argument("--ollama-port", type=int, help="The port that the Ollama server is running on.", default=11434)
+parser.add_argument("--ollama-host", type=str, help="The host that the Ollama server is running on.", default="localhost")
+parser.add_argument("--ood", action="store_true", help="Run chatbot as OOD app.")
 args = parser.parse_args()
 
-db = embeddings_db(f"http://localhost:{args.ollama_port}")
+db = embeddings_db(f"http://{args.ollama_host}:{args.ollama_port}")
 
 thee = gradio.themes.Default(
     primary_hue="blue",
@@ -212,11 +214,18 @@ with gradio.Blocks(
             additional_inputs=[llm_model, embedding_model, db_path],
             chatbot=gradio.Chatbot(scale=1)
         )
-
-demo.launch(
-    ssl_verify=False, 
-    server_name=args.host, 
-    root_path=f"/node/{args.host}/{args.port}",
-    server_port=args.port,
-    auth=("test", "123"),
-)
+if args.ood:
+    demo.launch(
+        ssl_verify=False, 
+        server_name=args.host, 
+        root_path=f"/node/{args.host}/{args.port}",
+        server_port=args.port,
+        auth=("test", "123"),
+    )
+else:
+    demo.launch(
+        ssl_verify=False, 
+        server_name=args.host, 
+        server_port=args.port,
+        auth=("test", "123"),
+    )
