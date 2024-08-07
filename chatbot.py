@@ -337,6 +337,7 @@ Answer the question based on the above context: {question}
         Yields:
             str: Progress messages and the final response.
         """
+        print(history)
 
         # Prepare the DB.
         embedding_function = get_embeddings(self.ollama_url, embedding_model)
@@ -369,9 +370,25 @@ Answer the question based on the above context: {question}
             return
 
         # append sources
-        sources = [doc.metadata.get("id", None) for doc, _score in results]
+        sources = self.list2md([doc.metadata.get("id", None) for doc, _score in results])
         response_text += f"\nSources:\n{sources}"
         yield response_text
+
+
+    def list2md(self, input_list: list) -> str:
+        """
+        Converts list to a bullet-pointed markdown list.
+
+        Args:
+            input_list (list): The list to be converted.
+        
+        Returns:
+            str: The list as a bullet-pointed markdown list.
+        """
+        mdlist = ""
+        for item in input_list:
+            mdlist += "* " + str(item) + "\n"
+        return "* " + "\n* ".join(str(item) for item in input_list) + "\n"
 
 
 if __name__ == "__main__":
