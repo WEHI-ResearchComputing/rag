@@ -387,8 +387,12 @@ Answer the question based on the above context: {question}
         """
         mdlist = ""
         for item in input_list:
-            mdlist += "* " + str(item) + "\n"
-        return "* " + "\n* ".join(str(item) for item in input_list) + "\n"
+            new_item = item.split(":")
+            filename = ":".join(new_item[:-2]) # just in case original file had colons
+            pgno = new_item[-2]
+            chunkno = new_item[-1]
+            mdlist += f"* File: {filename}, pg: {pgno}, chunk: {chunkno}\n"
+        return mdlist
 
 
 if __name__ == "__main__":
