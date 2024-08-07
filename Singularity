@@ -16,7 +16,7 @@ from: python:3.12.4-slim-bookworm
 
 %labels
   AUTHOR Edward Yang
-  VERSION 0.0.2
+  VERSION 0.0.3
 
 %runscript
   exec chatbot.py "$@"

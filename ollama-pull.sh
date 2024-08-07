@@ -16,4 +16,4 @@ apptainer exec \
      -B $TMPDIR:/tmp \
      -B /vast,/stornext \
      --env OLLAMA_HOST=$host \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.0.2 ollama pull $model
+     oras://ghcr.io/wehi-researchcomputing/rag:0.0.3 ollama pull $model
