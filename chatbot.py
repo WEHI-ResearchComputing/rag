@@ -8,7 +8,10 @@ from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.embeddings.ollama import OllamaEmbeddings
-from langchain_community.vectorstores.chroma import Chroma
+try:
+    from langchain_chroma import Chroma # langchain >= 0.2.9
+except:
+    from langchain_community.vectorstores.chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
 import glob, getpass, subprocess, os

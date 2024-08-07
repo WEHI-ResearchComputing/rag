@@ -3,7 +3,7 @@ langchain
 chromadb # Vector storage
 pytest
 boto3
-langchain-community
+langchain-community>0.1.17
 unstructured
 psutil
 gradio
