@@ -7,4 +7,5 @@ langchain-community>0.1.17
 unstructured
 psutil
 gradio
+cryptography>=3.1
 

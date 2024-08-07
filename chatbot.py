@@ -4,7 +4,7 @@ import gradio
 import socket
 import argparse
 from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
-from langchain_community.document_loaders import UnstructuredHTMLLoader
+from langchain_community.document_loaders import UnstructuredHTMLLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.embeddings.ollama import OllamaEmbeddings
@@ -39,7 +39,7 @@ Answer the question based on the above context: {question}
     def __init__(self, ollama_url):
         self.ollama_url = ollama_url
     
-    def add_data(self, data_path, embedding_model, db_path):
+    def add_data(self, files, embedding_model, db_path):
         progress_txt = "Testing Ollama server connection..."
         yield progress_txt
         try:
@@ -49,23 +49,29 @@ Answer the question based on the above context: {question}
             return
         yield (progress_txt := progress_txt + "\n✅ Connection succeeded!")
         yield (progress_txt := progress_txt + "\n📄 Loading documents...")
-        documents = self.load_documents(data_path)
+        documents = self.load_documents(files)
         yield (progress_txt := progress_txt + "\n✅ Documents loaded!")
         yield (progress_txt := progress_txt + "\n➗ Splitting documents into chunks...")
         chunks = self.split_documents(documents)
         yield (progress_txt := progress_txt + "\n✅ Documents splitted!")
         yield (progress_txt := progress_txt + "\n📊 Adding documents to database...")
         try:
-            yield (progress_txt := progress_txt + '\n' + self.add_to_chroma(chunks, self.ollama_url, embedding_model, db_path) + f" with {embedding_model} embedding model.")
+            for txt in self.add_to_chroma(chunks, self.ollama_url, embedding_model, db_path):
+                yield (progress_txt := progress_txt + '\n' + txt)
         except Exception as e:
             yield progress_txt + f'\n❌ Something went wrong! Error message:\n{str(e)}'
 
-    def load_documents(self, data_path):
-        # load PDFs
-        document_loader = PyPDFDirectoryLoader(data_path)
-        loaded_docs = document_loader.load()
-        # load HTMLs
-        loaded_docs += [UnstructuredHTMLLoader(doc).load()[0] for doc in glob.glob(f"{data_path}/*.html")]
+    def load_documents(self, files):
+        def tryme(doc: str) -> list[Document]:
+            ext = os.path.splitext(doc)[-1]
+            if ext == '.pdf':
+                return PyPDFLoader(doc).load()
+            elif ext == '.html':
+                return UnstructuredHTMLLoader(doc).load()
+        loaded_docs = []
+        for fi in files:
+            loaded_docs += tryme(fi)
+        
         return loaded_docs
     
     def split_documents(self, documents: list[Document]):
@@ -89,19 +95,17 @@ Answer the question based on the above context: {question}
         # Add or Update the documents.
         existing_items = db.get(include=[])  # IDs are always included by default
         existing_ids = set(existing_items["ids"])
-        print(f"Number of existing documents in DB: {len(existing_ids)}")
+        yield f"Number of existing documents in DB: {len(existing_ids)}"
 
         # Only add documents that don't exist in the DB.
         new_chunks = [chunk for chunk in chunks_with_ids if chunk.metadata["id"] not in existing_ids]
 
         if len(new_chunks):
-            print(f"👉 Adding new documents: {len(new_chunks)}")
+            yield f"👉 Adding new documents: {len(new_chunks)} with {embedding_model} model"
             db.add_documents(new_chunks)
-            db.persist()
-            return f"👉 Added new documents: {len(new_chunks)}"
+            yield f"✅ Added new documents: {len(new_chunks)}"
         else:
-            print("✅ No new documents to add")
-            return "✅ No new documents to add"
+            yield "✅ No new documents to add"
         
     def calculate_chunk_ids(self, chunks):
 
@@ -157,6 +161,7 @@ Answer the question based on the above context: {question}
                 yield response_text
         except Exception as e:
             yield f"{response_text}\n❌ Something went wrong when supplying the query to the LLM! Error message:\n{str(e)}"
+            return
 
         sources = [doc.metadata.get("id", None) for doc, _score in results]
         response_text += f"\nSources:\n{sources}"
@@ -185,18 +190,17 @@ with gradio.Blocks(
 ) as demo:
     with gradio.Group():
         with gradio.Row():
-            data_path = gradio.Textbox(label="Data Path")
             db_path = gradio.Textbox(label="Embedding Database Path", value=f"/vast/scratch/users/{getpass.getuser()}/rag_chromadb")
             embedding_model = gradio.Dropdown(
                 ["mxbai-embed-large", "nomic-embed-text", "snowflake-arctic-embed:22m"], 
                 value="mxbai-embed-large",
                 label="Embedding Model"
             )
-            add_data_btn = gradio.Button("Add Data to Database")
+            add_data_btn = gradio.File(label="Upload files to Database", file_count="multiple", file_types=[".pdf", ".html"])
         add_data_output = gradio.Textbox(label="Add Data Output")
-    add_data_btn.click(
+    add_data_btn.upload(
         fn=db.add_data, 
-        inputs=[data_path, embedding_model, db_path], 
+        inputs=[add_data_btn, embedding_model, db_path], 
         outputs=add_data_output
     )
     with gradio.Group():
