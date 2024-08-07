@@ -12,6 +12,7 @@ from: python:3.12.4-slim-bookworm
   apt-get clean
   rm -rf /var/lib/apt/lists/*
   curl -L https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama
+  chmod +x /usr/local/bin/ollama
 
 %labels
   AUTHOR Edward Yang
