@@ -50,7 +50,7 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool) ->
         primary_hue="blue", secondary_hue="green", font=["Arial", "sans-serif"]
     )
 
-    with gradio.Blocks(title="WEHI Local GPT", theme=theme, fill_height=True) as demo:
+    with gradio.Blocks(title="WEHI Local GPT", theme=theme, fill_height=True, fill_width=True) as demo:
         # group together embedding and rag related items
         # with gradio.Group():
         with gradio.Row(equal_height=False):
@@ -79,9 +79,8 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool) ->
                 inputs=[add_data_btn, embedding_model, db_path],
                 outputs=add_data_output,
             )
-            # add chatbot underneath the embedding items
-            # with gradio.Group():
-            with gradio.Column(scale=4, variant="compact"):
+            # add chatbot right of embedding config
+            with gradio.Column(scale=5, variant="compact"):
                 # currently manually specified
                 llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1)
 
@@ -89,9 +88,9 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool) ->
                     db.query_rag,
                     undo_btn=None,
                     clear_btn=None,
-                    fill_height=True,
+                    fill_width=True,
                     additional_inputs=[llm_model, embedding_model, db_path],
-                    chatbot=gradio.Chatbot(scale=1),
+                    chatbot=gradio.Chatbot(scale=1, show_copy_button=True, height="70vh", label="WEHI Local GPT", placeholder="👋 Let's start chatting!"),
                 )
     # launch app. OOD needs the root_path changed
     if ood:
