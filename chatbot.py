@@ -52,41 +52,47 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool) ->
 
     with gradio.Blocks(title="WEHI Local GPT", theme=theme, fill_height=True) as demo:
         # group together embedding and rag related items
-        with gradio.Group():
-            with gradio.Row():
+        # with gradio.Group():
+        with gradio.Row(equal_height=False):
+            with gradio.Column(scale=1, variant="compact"):
+                # with gradio.Group():
                 db_path = gradio.Textbox(
-                    label="Embedding Database Path", value=DEFAULT_RAGDB_PATH
+                    label="Embedding Database Path", value=DEFAULT_RAGDB_PATH,
+                    scale=1
                 )
                 embedding_model = gradio.Dropdown(
                     AVAILABLE_EMBEDDING_MODELS,
                     value="mxbai-embed-large",
                     label="Embedding Model",
+                    scale=1
                 )
                 add_data_btn = gradio.File(
                     label="Upload files to Database",
                     file_count="multiple",
                     file_types=AVAILABLE_FILETYPES,
+                    scale=1
                 )
-            add_data_output = gradio.Textbox(label="Add Data Output")
-        # add uploaded files to the database - triggered whenever a file(s) is uploaded
-        add_data_btn.upload(
-            fn=db.add_data,
-            inputs=[add_data_btn, embedding_model, db_path],
-            outputs=add_data_output,
-        )
-        # add chatbot underneath the embedding items
-        with gradio.Group():
-            # currently manually specified
-            llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM")
-
-            gradio.ChatInterface(
-                db.query_rag,
-                undo_btn=None,
-                clear_btn=None,
-                fill_height=True,
-                additional_inputs=[llm_model, embedding_model, db_path],
-                chatbot=gradio.Chatbot(scale=1),
+                add_data_output = gradio.Textbox(label="Add Data Output", scale=1)
+            # add uploaded files to the database - triggered whenever a file(s) is uploaded
+            add_data_btn.upload(
+                fn=db.add_data,
+                inputs=[add_data_btn, embedding_model, db_path],
+                outputs=add_data_output,
             )
+            # add chatbot underneath the embedding items
+            # with gradio.Group():
+            with gradio.Column(scale=4, variant="compact"):
+                # currently manually specified
+                llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1)
+
+                gradio.ChatInterface(
+                    db.query_rag,
+                    undo_btn=None,
+                    clear_btn=None,
+                    fill_height=True,
+                    additional_inputs=[llm_model, embedding_model, db_path],
+                    chatbot=gradio.Chatbot(scale=1),
+                )
     # launch app. OOD needs the root_path changed
     if ood:
         demo.launch(
