@@ -81,8 +81,11 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool) ->
             )
             # add chatbot right of embedding config
             with gradio.Column(scale=5, variant="compact"):
-                # currently manually specified
-                llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1)
+                with gradio.Row():
+                    # currently manually specified
+                    llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1, info="The Large Language Model to use. Send an email to support@wehi.edu.au to add more models. Models can be chosen from https://ollama.com/library.")
+                    use_rag_checkbox = gradio.Checkbox(value=True, label="Use RAG?", interactive=False, info="If yes, your documents will be used to supplement your query. If no, you send your query as-is to the LLM.")
+                    llmtemp = gradio.Textbox(value=0.8, label="LLM Temperature", interactive=False, info="Controls the \"creativity\" of the LLM. Lower values lead to less creative, but more reproducible responses.")
 
                 gradio.ChatInterface(
                     db.query_rag,
