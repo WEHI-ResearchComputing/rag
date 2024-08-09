@@ -13,7 +13,7 @@ curl -L https://ollama.com/download/ollama-linux-amd64 -o ollama
 2. Run the server
 
 ```bash
-sbatch ollama-server.sh
+sbatch ollama-submit.sh
 ```
 
 This will save models to `/vast/scratch/users/$USER/ollama-models` and store tmp files in
@@ -40,6 +40,8 @@ Embedding generation model is probably most important. Note that you can't use t
 until it's been pulled.
 
 5. Setup python environment
+
+Confirmed to work with Python 3.11. Do not use Python 3.12!
 
 ```bash
 python -m venv <env>
