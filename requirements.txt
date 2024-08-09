@@ -6,3 +6,8 @@ boto3
 langchain-community
 unstructured
 psutil
+# Bibtex and pubmed support
+bibtexparser
+pymupdf
+BioPython
+lxml

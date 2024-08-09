@@ -19,9 +19,9 @@ sbatch ollama-submit.sh
 This will save models to `/vast/scratch/users/$USER/ollama-models` and store tmp files in
 `/vast/scratch/users/$USER/tmp`
 
-3. Update the host in `conf.toml`
+3. Check the host in `conf.toml`
 
-Change `host = "gpu-a100-n01"` to the correct node name.
+The submit script should update it but check `host = "gpu-a100-n01"` to the correct node name.
 
 4. Download models
 
@@ -171,3 +171,13 @@ find data -size 1 -delete
 ```
 
 Then you can run the populate database script (step 6).
+
+### Download and ingest Pubmed abstracts
+A utility script, in the `utils` directory, has been provided to download Pubmed abstracts:
+```bash
+python -u pm_abstract_downloader.py --output-path test/cll.xml --search-term 'chronic lymphocytic leukemia[Text Word]) AND (("2020/01/01"[Date - Publication] : "3000"[Date - Publication])' --max-records 10000
+```
+Pubmed XML files will be ingested by the `populate_database.py` script using the `PubmedXmlLoader` class in `utils/pubmed.py`. Only a minimal amount of metadata are harvested but the class can be easily enhanced if required.
+
+### Ingest Bibtex abstracts
+Bibtex abstract files, `*.bib`, are also ingested using the `BibtexLoader` class in the `extras` directory. This is based on the `langchain_community.document_loaders` class but fixed to ingest entries that do not have associated files.
