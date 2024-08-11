@@ -1,0 +1,10 @@
+Use the following context to answer the user's question. Be sure to include relevant information from the previous conversation.
+
+History:
+{history}
+
+Context:
+{context}
+
+Question:
+{question}
