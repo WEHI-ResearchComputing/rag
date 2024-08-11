@@ -138,13 +138,16 @@ class embeddings_db:
     """
 
     PROMPT_TEMPLATE = """
-Answer the question based only on the following context:
+Use the following context to answer the user's question. Be sure to include relevant information from the previous conversation.
 
+History:
+{history}
+
+Context:
 {context}
 
----
-
-Answer the question based on the above context: {question}
+Question:
+{question}
 """
 
     def __init__(self, ollama_url: str = DEFAULT_OLLAMA_URL):
@@ -345,7 +348,6 @@ Answer the question based on the above context: {question}
         Yields:
             str: Progress messages and the final response.
         """
-        print(history)
 
         # Prepare the DB.
         embedding_function = get_embeddings(self.ollama_url, embedding_model)
@@ -363,7 +365,7 @@ Answer the question based on the above context: {question}
         # populate template with context and user's query
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
         prompt_template = ChatPromptTemplate.from_template(self.PROMPT_TEMPLATE)
-        prompt = prompt_template.format(context=context_text, question=query_text)
+        prompt = prompt_template.format(context=context_text, question=query_text, history=history)
 
         # get response from Ollama
         model = Ollama(base_url=self.ollama_url, model=llm_model)
