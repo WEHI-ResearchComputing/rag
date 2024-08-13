@@ -355,13 +355,16 @@ class embeddings_db:
 
         # populate template with context and user's query
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+        history_text = "\n\n".join([f"User: {ex[0]}\n\nAssistant: {ex[1]}\n\n" for ex in history])
         prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
-        prompt = prompt_template.format(context=context_text, question=query_text, history=history)
+        prompt = prompt_template.format(context=context_text, question=query_text, history=history_text)
+
+        print(prompt)
 
         # get response from Ollama
-        model = Ollama(base_url=self.ollama_url, model=llm_model)
+        model = Ollama(base_url=self.ollama_url, model=llm_model, num_ctx=4096)
+        yield "Generating response..."
         response_text = "Response:\n"
-        yield response_text
         try:
             for response_chunk in model.stream(prompt):
                 response_text += response_chunk

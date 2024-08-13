@@ -1,10 +1,11 @@
-Use the following context to answer the user's question. Be sure to include relevant information from the previous conversation.
-
 History:
 {history}
+
+Above is our previous chat history, which may be truncated.
+Below is additional context to be used to answer the question.
 
 Context:
 {context}
 
-Question:
+Answer the below question considering the above context and history, but prioritising the context if it's more relevant:
 {question}
