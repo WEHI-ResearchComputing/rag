@@ -1,0 +1,52 @@
+[project]
+name = "wehiragchat"
+dynamic = ["version"]
+authors = [
+    { name = "Edward Yang", email = "yang.e@wehi.edu.au" },
+]
+maintainers = [
+    { name = "Edward Yang", email = "yang.e@wehi.edu.au" },
+]
+description = "A frontend for on-premises chats, powered by RAG and LLMs"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pypdf",
+    "langchain",
+    "chromadb",
+    "pytest",
+    "boto3",
+    "langchain-community>0.1.17",
+    "unstructured",
+    "psutil",
+    "gradio",
+    "cryptography>=3.1",
+    "bibtexparser",
+    "pymupdf",
+    "lxml"
+]
+[project.optional-dependencies]
+utils = ["BioPython"]
+
+[project.scripts]
+wehiragchat = "wehiragchat:cli"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wehiragchat*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "wehiragchat.__version__"}
+
+[project.urls]
+Homepage = "https://github.com/WEHI-ResearchComputing/rag"
+Issues = "https://github.com/WEHI-ResearchComputing/rag/issues"

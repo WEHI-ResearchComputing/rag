@@ -4,8 +4,8 @@ import gradio
 import socket
 import argparse
 from langchain_community.document_loaders import UnstructuredHTMLLoader, PyPDFLoader
-from extras.bibtex import BibtexLoader
-from utils.pubmed import PubmedXmlLoader
+from wehiragchat.extras.bibtex import BibtexLoader
+from wehiragchat.utils.pubmed import PubmedXmlLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.embeddings.ollama import OllamaEmbeddings
@@ -18,6 +18,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
 import getpass, os, math
 from typing import Generator
+
+__version__ = "0.1.0"
 
 # These are models that fit in P100s
 AVAILABLE_EMBEDDING_MODELS = [
@@ -441,7 +443,10 @@ class embeddings_db:
         return prompt_template
 
 
-if __name__ == "__main__":
+def cli() -> None:
+    """
+    Wrapper function that wraps around main to parse CLI args.
+    """
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -475,3 +480,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.host, args.port, args.ollama_host, args.ollama_port, args.ood, args.prompt_template)
+
+if __name__ == "__main__":
+    cli()
