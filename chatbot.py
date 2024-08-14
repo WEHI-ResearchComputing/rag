@@ -4,6 +4,8 @@ import gradio
 import socket
 import argparse
 from langchain_community.document_loaders import UnstructuredHTMLLoader, PyPDFLoader
+from extras.bibtex import BibtexLoader
+from utils.pubmed import PubmedXmlLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.embeddings.ollama import OllamaEmbeddings
@@ -14,7 +16,7 @@ except:
     from langchain_community.vectorstores.chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
-import getpass, os
+import getpass, os, math
 from typing import Generator
 
 # These are models that fit in P100s
@@ -24,7 +26,7 @@ AVAILABLE_EMBEDDING_MODELS = [
     "snowflake-arctic-embed:22m",
 ]
 AVAILABLE_LLMS = ["mistral", "mistral-nemo", "phi3:mini", "phi3:medium"]
-AVAILABLE_FILETYPES = [".pdf", ".html"]  # update these as more doc loaders are added
+AVAILABLE_FILETYPES = [".pdf", ".html", ".bib", ".xml"]  # update these as more doc loaders are added
 
 DEFAULT_RAGDB_PATH = f"/vast/scratch/users/{getpass.getuser()}/rag_chromadb"
 DEFAULT_AUTH = ("test", "123")  # username, password
@@ -207,6 +209,10 @@ class embeddings_db:
                 return PyPDFLoader(doc).load()
             elif ext == ".html":
                 return UnstructuredHTMLLoader(doc).load()
+            elif ext == ".bib":
+                return BibtexLoader(doc).load()
+            elif ext == ".xml":     
+                return PubmedXmlLoader(doc).load()
 
         loaded_docs = []
         for fi in files:
@@ -258,27 +264,39 @@ class embeddings_db:
             embedding_function=get_embeddings(ollama_base_url, embedding_model),
         )
 
-        # Calculate Page IDs.
-        chunks_with_ids = self.calculate_chunk_ids(chunks)
-
         # Add or Update the documents.
         existing_items = db.get(include=[])  # IDs are always included by default
         existing_ids = set(existing_items["ids"])
         yield f"Number of existing documents in DB: {len(existing_ids)}"
 
-        # Only add documents that don't exist in the DB.
-        new_chunks = [
-            chunk
-            for chunk in chunks_with_ids
-            if chunk.metadata["id"] not in existing_ids
-        ]
+        batch_size = 5000
+        nbatches = math.ceil(len(chunks)/batch_size)
 
-        if len(new_chunks):
-            yield f"👉 Adding new documents: {len(new_chunks)} with {embedding_model} model"
-            db.add_documents(new_chunks)
-            yield f"✅ Added new documents: {len(new_chunks)}"
-        else:
-            yield "✅ No new documents to add"
+        for batch_idx in range(nbatches):
+
+            yield f"Processing batch {batch_idx} of {nbatches}..."
+
+            start_idx = batch_idx*batch_size
+            end_idx = start_idx + batch_size
+            # Calculate Page IDs.
+            chunks_with_ids = self.calculate_chunk_ids(chunks[start_idx:end_idx])
+
+            # Only add documents that don't exist in the DB.
+            new_chunks = [
+                chunk
+                for chunk in chunks_with_ids
+                if chunk.metadata["id"] not in existing_ids
+            ]
+            print(new_chunks)
+
+            if len(new_chunks):
+                yield f"    👉 Adding new documents: {len(new_chunks)} with {embedding_model} model"
+                db.add_documents(new_chunks)
+                yield f"    ✅ Added new documents: {len(new_chunks)}"
+            else:
+                yield "    ✅ No new documents to add"
+
+            yield "Completed processing all batches!"
 
     @staticmethod
     def calculate_chunk_ids(chunks: list[Document]) -> list[Document]:
@@ -299,23 +317,32 @@ class embeddings_db:
         current_chunk_index = 0
 
         for chunk in chunks:
-            source = os.path.basename(chunk.metadata.get("source"))
-            page = chunk.metadata.get("page")
-            current_page_id = f"{source}:{page}"
+            # If source is not present in
+            source = chunk.metadata.get("source")
+            if source:
+                source = chunk.metadata.get("source")
+                page = chunk.metadata.get("page")
+                current_page_id = f"{source}:{page}"
 
-            # If the page ID is the same as the last one, increment the index.
-            if current_page_id == last_page_id:
-                current_chunk_index += 1
-            else:
-                current_chunk_index = 0
+                # If the page ID is the same as the last one, increment the index.
+                if current_page_id == last_page_id:
+                    current_chunk_index += 1
+                else:
+                    current_chunk_index = 0
 
-            # Calculate the chunk ID.
-            chunk_id = f"{current_page_id}:{current_chunk_index}"
-            last_page_id = current_page_id
+                # Calculate the chunk ID.
+                chunk_id = f"{current_page_id}:{current_chunk_index}"
+                last_page_id = current_page_id
 
-            # Add it to the page meta-data.
-            chunk.metadata["id"] = chunk_id
-
+                # Add it to the page meta-data.
+                chunk.metadata["id"] = chunk_id
+                continue
+            
+            pmid = chunk.metadata.get('pmid')
+            if pmid:
+                chunk.metadata["id"] = f'PMID: {pmid}'
+                continue
+            
         return chunks
 
     def query_rag(
@@ -352,6 +379,8 @@ class embeddings_db:
 
         # Search the DB.
         results = db.similarity_search_with_score(query_text, k=5)
+
+        print(results)
 
         # populate template with context and user's query
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
@@ -391,11 +420,18 @@ class embeddings_db:
         """
         mdlist = ""
         for item in input_list:
-            new_item = item.split(":")
-            filename = ":".join(new_item[:-2]) # just in case original file had colons
-            pgno = new_item[-2]
-            chunkno = new_item[-1]
-            mdlist += f"* File: {filename}, pg: {pgno}, chunk: {chunkno}\n"
+            # page of doc
+            if ":" in item:
+                new_item = item.split(":")
+                filename = ":".join(new_item[:-2]) # just in case original file had colons
+                pgno = new_item[-2]
+                chunkno = new_item[-1]
+                mdlist += f"* File: {filename}, pg: {pgno}, chunk: {chunkno}\n"
+            elif "PMID" in item: # doc from pubmed xml
+                mdlist += f"* {item}\n"
+            else:
+                mdlist += f"* ID: {item}\n"
+
         return mdlist
     
     @staticmethod

@@ -3,3 +3,6 @@
 backup
 chroma
 data
+*.log
+*.out
+ollama
