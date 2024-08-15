@@ -1,22 +1,26 @@
 bootstrap: docker
 from: python:3.12.4-slim-bookworm
-
-%files
-  requirements.txt /opt/requirements.txt
-  chatbot.py /usr/local/bin/chatbot.py
+stage: devel
 
 %post
-  pip install -r /opt/requirements.txt --no-cache
   apt-get update
-  apt-get install -y curl
-  apt-get clean
-  rm -rf /var/lib/apt/lists/*
+  apt-get install -y curl git
+  pip install git+https://github.com/wehi-researchcomputing/rag.git@gradio --no-cache
   curl -L https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama
   chmod +x /usr/local/bin/ollama
 
+
+# Production stage
+bootstrap: docker
+from: python:3.12.4-slim-bookworm
+stage: prod
+
+%files from devel
+  /usr/local /usr
+
 %labels
   AUTHOR Edward Yang
-  VERSION 0.0.3
+  VERSION 0.1.0
 
 %runscript
-  exec chatbot.py "$@"
+  exec wehiragchat "$@"

@@ -11,7 +11,7 @@ module load apptainer/1.2.3
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
 
-apptainer exec \
+apptainer run \
      -B $TMPDIR:/tmp \
      -B /vast,/stornext \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.0.3 chatbot.py --ollama-host $ollama_host
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 --ollama-host $ollama_host

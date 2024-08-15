@@ -38,5 +38,5 @@ apptainer exec --nv \
      --env OLLAMA_HOST=$SLURM_NODELIST \
      --env OLLAMA_MODELS=$ollama_models \
      --env OLLAMA_MAX_LOADED_MODELS=2 \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.0.3 \
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 \
      	ollama serve

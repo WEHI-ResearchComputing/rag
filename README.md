@@ -187,7 +187,7 @@ Then you can run the populate database script (step 6).
 ## Download and ingest Pubmed abstracts
 A utility script, in the `utils` directory, has been provided to download Pubmed abstracts:
 ```bash
-python -u pm_abstract_downloader.py --output-path test/cll.xml --search-term 'chronic lymphocytic leukemia[Text Word]) AND (("2020/01/01"[Date - Publication] : "3000"[Date - Publication])' --max-records 10000
+python -u utils/pm_abstract_downloader.py --output-path test/cll.xml --search-term 'chronic lymphocytic leukemia[Text Word]) AND (("2020/01/01"[Date - Publication] : "3000"[Date - Publication])' --max-records 10000
 ```
 Pubmed XML files will be ingested by the `populate_database.py` script using the `PubmedXmlLoader` class in `utils/pubmed.py`. Only a minimal amount of metadata are harvested but the class can be easily enhanced if required.
 
