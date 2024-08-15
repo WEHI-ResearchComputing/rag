@@ -1,5 +1,0 @@
-[ollama]
-host = "gpu-a30-n04.hpc.wehi.edu.au"
-port = 11434
-embedding_model = "mxbai-embed-large"
-llm_model = "mistral"

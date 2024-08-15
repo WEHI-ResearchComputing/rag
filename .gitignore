@@ -2,6 +2,7 @@
 .DS_Store
 backup
 chroma
+data
 *.log
 *.out
 ollama

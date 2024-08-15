@@ -1,0 +1,7 @@
+---
+name: WEHI Local GPT
+category: Interactive Apps
+subcategory: Servers
+role: batch_connect
+description: |
+  This app will launch an in-development ChatGPT-like app.

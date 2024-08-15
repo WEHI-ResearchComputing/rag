@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# setup ollama dirs
+ollama_models=/vast/scratch/users/$USER/ollama-models
+ollama_tmp=/vast/scratch/users/$USER/tmp
+
+mkdir -p $ollama_models $ollama_tmp
+
+export OLLAMA_MODELS=$ollama_models 
+
+ollama_port=$(find_port)
+
+echo Ollama will run on port $ollama_port
+
+apptainer run --nv \
+     -B $TMPDIR:/tmp \
+     -B $ollama_models:$HOME/.ollama/models \
+     -B /vast,/stornext \
+     --env OLLAMA_HOST=localhost:$ollama_port \
+     docker://ollama/ollama 2> ollama.err > ollama.out &
+apptainer exec -B /vast,/stornext oras://ghcr.io/wehi-researchcomputing/rag:0.0.1 python /vast/projects/RCP/rag-tutorial-v2/chatbot.py --port $port --host $host --ollama-port $ollama_port --ood

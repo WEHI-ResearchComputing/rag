@@ -1,15 +1,13 @@
 #!/bin/bash
-#SBATCH -c 24 --mem 100G 
-#SBATCH --gres gpu:A30:1 -p gpuq
+#SBATCH -c 12 --mem 24G 
+#SBATCH --gres gpu:1 -p gpuq
 #SBATCH --output ollama-server.log
+#SBATCH --prefer P100 # use P100s for now
 
 set -eu
 
 module purge
 module load apptainer/1.2.3
-
-# Update the conf file
-sed -i "/host/c\host = \"`hostname`\"" conf.toml
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
@@ -32,10 +30,13 @@ mkdir -p $ollama_models $ollama_tmp
 #      OLLAMA_LLM_LIBRARY         Set LLM library to bypass autodetection
 #      OLLAMA_MAX_VRAM            Maximum VRAM
 
-export OLLAMA_HOST=$SLURM_NODELIST OLLAMA_MODELS=$ollama_models
+export OLLAMA_HOST=$SLURM_NODELIST OLLAMA_MODELS=$ollama_models OLLAMA_MAX_LOADED_MODELS=2
 
-apptainer run --nv \
+apptainer exec --nv \
      -B $TMPDIR:/tmp \
-     -B $ollama_models:$HOME/.ollama/models \
      -B /vast,/stornext \
-     docker://ollama/ollama
+     --env OLLAMA_HOST=$SLURM_NODELIST \
+     --env OLLAMA_MODELS=$ollama_models \
+     --env OLLAMA_MAX_LOADED_MODELS=2 \
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 \
+     	ollama serve

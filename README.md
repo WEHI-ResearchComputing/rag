@@ -4,31 +4,27 @@ Setup to run on WEHI Milton.
 
 ## Setup
 
-1. Get Ollama
-
-```bash
-curl -L https://ollama.com/download/ollama-linux-amd64 -o ollama
-```
-
-2. Run the server
+1. Run the Ollama server
 
 ```bash
 sbatch ollama-submit.sh
 ```
 
-This will save models to `/vast/scratch/users/$USER/ollama-models` and store tmp files in
-`/vast/scratch/users/$USER/tmp`
+This runs the server from a container. Note, that if running for the first time, 
+you will need to wait a minute or so for the container to download.
 
-3. Check the host in `conf.toml`
+This will save models to `/vast/scratch/users/$USER/ollama-models` and store tmp 
+files in `/vast/scratch/users/$USER/tmp`.
 
-The submit script should update it but check `host = "gpu-a100-n01"` to the correct node name.
+Server logs will be in `ollama-server.log`.
 
-4. Download models
+2. Download models
 
 This downloads models into `/vast`
+
 ```bash
-# host could be gpu-a100-n01, model could be mistral
-OLLAMA_HOST=<host> ./ollama pull <model>
+# host is where ollama is running gpu-a100-n01, model could be mistral
+./ollama-pull <host> <model>
 ```
 
 Models needed to run repo as-is:
@@ -36,79 +32,95 @@ Models needed to run repo as-is:
 * LLM: `mistral`
 * Embedding generation: `mxbai-embed-large`
 
-Embedding generation model is probably most important. Note that you can't use the model
-until it's been pulled.
+Embedding generation model is probably most important. Note that you can't use 
+the model until it's been pulled.
 
-5. Setup python environment
+3. Run chatbot
 
 Confirmed to work with Python 3.11. Do not use Python 3.12!
 
 ```bash
-python -m venv <env>
-. <env>/bin/activate
-pip install -r requirements.txt
+# host is where ollama is running e.g. gpu-a100-n01
+./run-chatbot.sh <host>
 ```
 
-6. Add data to database
+You can run the chatbot anywhere, doesn't have to be on Milton. It starts a
+server which you can access on your PC's browser e.g. `http://vc7-shared:7860`.
+The output will give you the URL to use.
 
-```bash
-# need newer version of sqlite than what the system has
-module load sqlite
+For now, the login details are:
 
-# populate database with pdfs in ./data
-python populate_database.py
+```
+Username: test
+Password: 123
 ```
 
-7. Run tests
+NOTE: the models' dropdowns are pre-populated, but you need to pull them first 
+to use them. Future work will automatically pull the models.
 
-```bash
-pytest
-```
+4. Add data to database
 
-This checks two basic rules from the Monopoly and Ticket to Ride.
+Fill out:
+* Data Path: This is the path where your HTMLs and PDFs reside.
+* Embedding Database: This is where the database will be stored.
 
-8. Run your queries
+and then click "Add Data to Database".
 
-```bash
-python query_data.py "<query>"
-```
+Some things to note about the data added to the database:
+* each file is split into chunks
+* each chunk is assigned an ID based on the path of the file and the chunk index
+* on subsequent clicks of "Add Data to Database" it will only add chunks with ID not seen before.
+
+5. Query
+
+In the bottom text box, you can submit your queries! Note that the chat
+currently doesn't incorporate history i.e., new responses don't account for
+previous exchanges.
+
+The queries will first pull potentially relevant chunks from the database, and
+then supplement your query with those chunks before sending them to the LLM to
+get a response.
 
 ## Example
 
-```bash
-$ python query_data.py "Tell me about Smoothed Particle Hydrodynamics"
+Query:
 ```
+Tell me about Smoothed Particle Hydrodynamics
+```
+
+Response:
+
 ```output
-Response:  Smoothed Particle Hydrodynamics (SPH) is a mesh-free Lagrangian 
-particle method used for simulating fluid and granular materials. The method was
-first introduced by Gingold & Monaghan in 1977 and has been developed further 
-since then.
+Response:
+Smoothed Particle Hydrodynamics (SPH) is a meshless numerical method used to 
+solve problems in fluid dynamics, solid mechanics, and astrophysics. Unlike 
+traditional mesh-based methods, SPH does not rely on any underlying grid; 
+instead, it uses statistical interpolation techniques to carry information 
+through material points.
 
-The key feature of SPH is the representation of continuous functions using 
-discrete particles, each with a mass and position. By calculating the 
-interactions between particles, various physical properties like density, 
-pressure, and velocity can be approximated. This allows for the simulation of 
-complex problems such as granular flows, free-surface flows, and even solid 
-boundary conditions.
+First published in 1977 by Liu GR and Liu MB [68], the main application of SPH 
+was initially focused on astrophysics. However, as more studies were conducted, 
+its applications expanded to include physics of solids and fluids, granular 
+materials, debris flows, slope failures, coupled soil-water interactions, 
+fracturing of geomaterials, and granular flows in dense regimes 
+[25, 26, 27, 28, 29, 30, 31-33, 34-43].
 
-In the context provided, several studies using SPH are mentioned:
-- Liu et al. (2012) - On the treatment of solid boundaries in SPH
-- Chen & Beraun (2000) - A generalized SPH method for nonlinear dynamic problems
-- Gui-rong (2003) - Smoothed particle hydrodynamics: a meshfree particle method
-- Cherfils et al. (2012) - JOSEPHINE: A parallel SPH code for free-surface flows
-- Domínguez et al. (2011) - Neighbour lists in smoothed particle hydrodynamics
-
-These studies demonstrate the versatility of SPH and its applications in various 
-fields, including geotechnical engineering, earthquake simulations, and granular
-flow modeling under different boundary conditions. Furthermore, the context also
-mentions parallelization and high-performance computing (HPC) for large-scale 
-simulations using SPH.
-Sources: ['data/1-s2.0-S0266352X20300379-main-1.pdf:21:3', 
-'data/s11440-021-01162-4.pdf:4:0', 
-'data/1-s2.0-S0266352X20300379-main-1.pdf:20:9', 
-'data/1-s2.0-S0266352X20300379-main-1.pdf:2:1', 
-'data/1-s2.0-S0266352X20300379-main-1.pdf:20:8']
+The applicability of SPH to granular flows has been demonstrated extensively in 
+the literature and shows good agreement with experimental results when coupled 
+with elasto-plastic models. This method has gained popularity due to its ability 
+to model complex systems that are difficult to describe using traditional 
+mesh-based methods, such as granular materials and multiphase fluid-structure 
+interactions [40, 41, 42, 43].
+Sources:
+['/vast/scratch/users/yang.e/data/1-s2.0-S0266352X20300379-main-1.pdf:21:3', 
+'/vast/scratch/users/yang.e/data/1-s2.0-S0266352X20300379-main-1.pdf:20:9', 
+'/vast/scratch/users/yang.e/data/s11440-021-01162-4.pdf:1:3', 
+'/vast/scratch/users/yang.e/data/s11440-021-01162-4.pdf:22:1', 
+'/vast/scratch/users/yang.e/data/s11440-021-01162-4.pdf:1:4']
 ```
+
+This query took chunks from my papers, and organised them into a cherent
+response!
 
 ## Known working models
 
@@ -156,7 +168,7 @@ npm i -g @pnp/cli-microsoft365
 ### Run
 
 ```bash
-bash download-pages.sh
+bash utils/download-pages.sh
 ```
 
 ### Post-process
@@ -172,10 +184,10 @@ find data -size 1 -delete
 
 Then you can run the populate database script (step 6).
 
-### Download and ingest Pubmed abstracts
+## Download and ingest Pubmed abstracts
 A utility script, in the `utils` directory, has been provided to download Pubmed abstracts:
 ```bash
-python -u pm_abstract_downloader.py --output-path test/cll.xml --search-term 'chronic lymphocytic leukemia[Text Word]) AND (("2020/01/01"[Date - Publication] : "3000"[Date - Publication])' --max-records 10000
+python -u utils/pm_abstract_downloader.py --output-path test/cll.xml --search-term 'chronic lymphocytic leukemia[Text Word]) AND (("2020/01/01"[Date - Publication] : "3000"[Date - Publication])' --max-records 10000
 ```
 Pubmed XML files will be ingested by the `populate_database.py` script using the `PubmedXmlLoader` class in `utils/pubmed.py`. Only a minimal amount of metadata are harvested but the class can be easily enhanced if required.
 
