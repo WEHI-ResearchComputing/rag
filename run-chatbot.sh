@@ -6,7 +6,7 @@ set -eu
 ollama_host=$1
 
 module purge
-module load apptainer/1.2.3
+module load apptainer/1.2.5
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
