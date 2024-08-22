@@ -58,6 +58,13 @@ Password: 123
 NOTE: the models' dropdowns are pre-populated, but you need to pull them first 
 to use them. Future work will automatically pull the models.
 
+To run the chatbot on a different port, supply the port as the second arg:
+
+```bash
+# port could be 12345
+./run-chatbot.sh <host> <port>
+```
+
 4. Add data to database
 
 Fill out:
