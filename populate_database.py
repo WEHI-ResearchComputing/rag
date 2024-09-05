@@ -10,6 +10,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_config
 import glob
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import chromadb
 import ollama
@@ -41,11 +44,31 @@ def main():
     
     print('All done.')
 
+def hash_file(file):
+    with open(file, "rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+def check_documents(data_path, jobs):
+    # collect hashes in data_path
+    # potential files
+    files = []
+    for patterns in ("*.html", "*.bib", "*.xml", "*.pdf"):
+        files += glob.glob(os.path.join(data_path, patterns))
+    with multiprocessing.Pool(processes=jobs) as pool:
+        current_file_hashes = pool.map(hash_file, files)
+    current_file_hash_pairs = dict(zip(current_file_hashes, files))
+    db = chromadb.PersistentClient(path=CHROMA_PATH)
+    collection = db.get_or_create_collection(name="langchain")
+    old_file_hashes = [it["file_sha256"] for it in collection.get(include=["metadatas"])["metadatas"]]
+
+    # use set operations to find new hashes to add
+    new_hashes = set(current_file_hashes) - set(old_file_hashes)
+    new_docs = [current_file_hash_pairs[h] for h in new_hashes]
+    return new_docs
+
 def parse(loader, doc):
-    with open(doc, "rb") as f:
-        h = hashlib.file_digest(f, "sha256").hexdigest()
     loaded_doc = loader(doc).load()[0]
-    loaded_doc.metadata["file_sha256"] = h
+    loaded_doc.metadata["file_sha256"] = hash_file(doc)
     return loaded_doc
 
 def parse_documents(loader, docfiles, jobs):
