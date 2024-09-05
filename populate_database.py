@@ -9,8 +9,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_config
 import glob
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import chromadb
 import ollama
+import multiprocessing
+import itertools
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
@@ -22,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
     parser.add_argument("--path", type=str, help="Path to data directory", default=DATA_PATH)
+    parser.add_argument("--jobs", "-j", type=int, default=1, help="Number of jobs to run in parallel with processing files.")
     args = parser.parse_args()
     data_path = args.path
     if args.reset:
@@ -29,30 +36,37 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    documents = load_documents(data_path)
+    documents = load_documents(data_path, args.jobs)
     chunks = split_documents(documents)
     url, embedding_model, _ = get_config(CONF_PATH)
     add_to_chroma(chunks, url, embedding_model)
     
     print('All done.')
 
-def load_documents(data_path):
+def parse(loader, doc):
+    return loader(doc).load()[0]
+
+def parse_documents(loader, docfiles, jobs):
+    with multiprocessing.Pool(processes=jobs) as pool:
+        docs = pool.starmap(
+            parse, 
+            zip(itertools.repeat(loader), docfiles)
+        )
+    return docs
+
+def load_documents(data_path, jobs):
     # load PDFs
     document_loader = PyPDFDirectoryLoader(data_path)
     loaded_docs = document_loader.load()
     
     # load HTMLs
-    loaded_docs += [UnstructuredHTMLLoader(doc).load()[0] for doc in glob.glob(os.path.join(data_path, "*.html"))]
+    loaded_docs += parse_documents(UnstructuredHTMLLoader, glob.glob(os.path.join(data_path, "*.html")), jobs)
     
     # load BibTex abstracts
-    for doc in glob.glob(os.path.join(data_path, "*.bib")):
-        print(f'loading {doc}')
-        loaded_docs += BibtexLoader(doc).load()
+    loaded_docs += parse_documents(BibtexLoader, glob.glob(os.path.join(data_path, "*.bib")), jobs)
         
     # load Pubmed XML files
-    for doc in glob.glob(os.path.join(data_path, "*.xml")):
-        print(f'loading {doc}')
-        loaded_docs += PubmedXmlLoader(doc).load()
+    loaded_docs += parse_documents(PubmedXmlLoader, glob.glob(os.path.join(data_path, "*.xml")), jobs)
 
     print(f'Loaded {len(loaded_docs)} documents')
             
