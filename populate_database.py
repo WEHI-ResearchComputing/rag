@@ -5,6 +5,7 @@ from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 from extras.bibtex import BibtexLoader
 from utils.pubmed import PubmedXmlLoader
+import hashlib
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_config
@@ -44,7 +45,11 @@ def main():
     print('All done.')
 
 def parse(loader, doc):
-    return loader(doc).load()[0]
+    with open(doc, "rb") as f:
+        h = hashlib.file_digest(f, "sha256").hexdigest()
+    loaded_doc = loader(doc).load()[0]
+    loaded_doc.metadata["file_sha256"] = h
+    return loaded_doc
 
 def parse_documents(loader, docfiles, jobs):
     with multiprocessing.Pool(processes=jobs) as pool:
@@ -58,6 +63,10 @@ def load_documents(data_path, jobs):
     # load PDFs
     document_loader = PyPDFDirectoryLoader(data_path)
     loaded_docs = document_loader.load()
+    # ensure hashfield is in metadata
+    # needs to be implemented properly later
+    for i in range(len(loaded_docs)):
+        loaded_docs[i].metadata["file_sha256"] = ""
     
     # load HTMLs
     loaded_docs += parse_documents(UnstructuredHTMLLoader, glob.glob(os.path.join(data_path, "*.html")), jobs)
