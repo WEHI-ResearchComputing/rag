@@ -11,3 +11,5 @@ bibtexparser
 pymupdf
 BioPython
 lxml
+chromadb
+ollama

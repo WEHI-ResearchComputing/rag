@@ -7,9 +7,10 @@ from extras.bibtex import BibtexLoader
 from utils.pubmed import PubmedXmlLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
-from get_embedding_function import get_embedding_function, get_config
-from langchain_community.vectorstores.chroma import Chroma
+from get_embedding_function import get_config
 import glob
+import chromadb
+import ollama
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
@@ -69,15 +70,16 @@ def split_documents(documents: list[Document]):
 
 def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
     # Load the existing database.
-    db = Chroma(
-        persist_directory=CHROMA_PATH, embedding_function=get_embedding_function(ollama_base_url, embedding_model)
-    )
+    db = chromadb.PersistentClient(path=CHROMA_PATH)
+    collection = db.get_or_create_collection(name="langchain")
+
+    ollama_client = ollama.Client(host=ollama_base_url)
 
     # Calculate Page IDs.
     chunks_with_ids = calculate_chunk_ids(chunks)
 
     # Add or Update the documents.
-    existing_items = db.get(include=[])  # IDs are always included by default
+    existing_items = collection.get()
     existing_ids = set(existing_items["ids"])
     print(f"Number of existing documents in DB: {len(existing_ids)}")
 
@@ -100,8 +102,17 @@ def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
         chunk_of_chunks = new_chunks[i:i+batch_size]
         print(f"👉 Adding new documents: {len(chunk_of_chunks)}")
         new_chunk_ids = [chunk.metadata["id"] for chunk in chunk_of_chunks]
-        db.add_documents(chunk_of_chunks, ids=new_chunk_ids)
-        db.persist()
+        new_chunk_pagecontent = [chunk.page_content for chunk in chunk_of_chunks]
+        embeddings = ollama_client.embed(
+            model=embedding_model, 
+            input=[f"passage: {c}" for c in new_chunk_pagecontent]
+        )
+        collection.add(
+            documents = new_chunk_pagecontent,
+            embeddings = embeddings['embeddings'],
+            ids = new_chunk_ids,
+            metadatas=[chunk.metadata for chunk in chunk_of_chunks]
+        )
 
 
 def calculate_chunk_ids(chunks):
