@@ -378,6 +378,15 @@ class embeddings_db:
         except Exception as e:
             yield f"❌ Something went wrong when trying to retrieve data from the RAG! Error message:\n{str(e)}"
             return
+        
+        print(query_text)
+
+        import regex
+        if regex.search(r'\p{Han}', query_text):
+            model = Ollama(base_url=self.ollama_url, model="yi:34b", num_ctx=4096)
+            query_text = model.invoke(f"translate this to english, returning the translation only. If there is no suitable English translation, e.g. proper nouns, return the pinyin only: {query_text}")
+        
+        print(query_text)
 
         # Search the DB.
         results = db.similarity_search_with_score(query_text, k=5)
