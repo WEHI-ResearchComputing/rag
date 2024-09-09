@@ -37,7 +37,8 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    documents = load_documents(data_path, args.jobs)
+    files2load = check_documents(data_path, args.jobs)
+    documents = load_documents(files2load, data_path, args.jobs)
     chunks = split_documents(documents)
     url, embedding_model, _ = get_config(CONF_PATH)
     add_to_chroma(chunks, url, embedding_model)
@@ -52,34 +53,44 @@ def check_documents(data_path, jobs):
     # collect hashes in data_path
     # potential files
     files = []
-    for patterns in ("*.html", "*.bib", "*.xml", "*.pdf"):
+    # check html, bib, xml. Don't check pdfs until alternative to PyPDFDirectoryLoader is used.
+    for patterns in ("*.html", "*.bib", "*.xml"):
         files += glob.glob(os.path.join(data_path, patterns))
+
+    print(f"🔎 Discovered {len(files)} files in the data folder.")
+
     with multiprocessing.Pool(processes=jobs) as pool:
         current_file_hashes = pool.map(hash_file, files)
     current_file_hash_pairs = dict(zip(current_file_hashes, files))
     db = chromadb.PersistentClient(path=CHROMA_PATH)
-    collection = db.get_or_create_collection(name="langchain")
+    collection = db.get_or_create_collection(name="langchain") # langchain is the default colleciton name used by the langchain ChromaDB API
     old_file_hashes = [it["file_sha256"] for it in collection.get(include=["metadatas"])["metadatas"]]
 
     # use set operations to find new hashes to add
     new_hashes = set(current_file_hashes) - set(old_file_hashes)
     new_docs = [current_file_hash_pairs[h] for h in new_hashes]
+
+    print(f"👉 Found {len(new_docs)} new files.")
+
     return new_docs
 
-def parse(loader, doc):
-    loaded_doc = loader(doc).load()[0]
-    loaded_doc.metadata["file_sha256"] = hash_file(doc)
-    return loaded_doc
+def parse(loader, doc: str) -> list[Document]:
+    loaded_docs = loader(doc).load()
+    h = hash_file(doc)
+    for i in range(len(loaded_docs)):
+        loaded_docs[i].metadata["file_sha256"] = h
+    return loaded_docs
 
-def parse_documents(loader, docfiles, jobs):
+def parse_documents(loader, docfiles: list[str], jobs: int):
     with multiprocessing.Pool(processes=jobs) as pool:
         docs = pool.starmap(
             parse, 
             zip(itertools.repeat(loader), docfiles)
         )
-    return docs
+    # flattening list of lists of docs
+    return [it for sublist in docs for it in sublist]
 
-def load_documents(data_path, jobs):
+def load_documents(docs2load: list[str], data_path: str, jobs: int):
     # load PDFs
     document_loader = PyPDFDirectoryLoader(data_path)
     loaded_docs = document_loader.load()
@@ -89,15 +100,18 @@ def load_documents(data_path, jobs):
         loaded_docs[i].metadata["file_sha256"] = ""
     
     # load HTMLs
-    loaded_docs += parse_documents(UnstructuredHTMLLoader, glob.glob(os.path.join(data_path, "*.html")), jobs)
+    htmldocs = [doc for doc in docs2load if ".html" in doc ]
+    loaded_docs += parse_documents(UnstructuredHTMLLoader, htmldocs, jobs)
     
     # load BibTex abstracts
-    loaded_docs += parse_documents(BibtexLoader, glob.glob(os.path.join(data_path, "*.bib")), jobs)
+    bibtexdocs = [doc for doc in docs2load if ".bib" in doc ]
+    loaded_docs += parse_documents(BibtexLoader, bibtexdocs, jobs)
         
     # load Pubmed XML files
-    loaded_docs += parse_documents(PubmedXmlLoader, glob.glob(os.path.join(data_path, "*.xml")), jobs)
+    xmldocs = [doc for doc in docs2load if ".xml" in doc]
+    loaded_docs += parse_documents(PubmedXmlLoader, xmldocs, jobs)
 
-    print(f'Loaded {len(loaded_docs)} documents')
+    print(f'🔄 Loaded {len(loaded_docs)} documents from {len(docs2load)} files.')
             
     return loaded_docs
 
@@ -108,7 +122,9 @@ def split_documents(documents: list[Document]):
         length_function=len,
         is_separator_regex=False,
     )
-    return text_splitter.split_documents(documents)
+    split_docs = text_splitter.split_documents(documents)
+    print(f"➗ split {len(documents)} files into {len(split_docs)} documents.")
+    return split_docs
 
 
 def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
@@ -124,7 +140,7 @@ def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
     # Add or Update the documents.
     existing_items = collection.get()
     existing_ids = set(existing_items["ids"])
-    print(f"Number of existing documents in DB: {len(existing_ids)}")
+    print(f"📚 Number of existing documents in DB: {len(existing_ids)}")
 
     # Only add documents that don't exist in the DB.
     # Also, filter out chunks with duplicate ids
@@ -143,7 +159,7 @@ def add_to_chroma(chunks: list[Document], ollama_base_url, embedding_model):
     batch_size = 5000
     for i in range(0, len_chunks, batch_size):
         chunk_of_chunks = new_chunks[i:i+batch_size]
-        print(f"👉 Adding new documents: {len(chunk_of_chunks)}")
+        print(f"👉 Adding new documents: {len(chunk_of_chunks)}/{len_chunks}")
         new_chunk_ids = [chunk.metadata["id"] for chunk in chunk_of_chunks]
         new_chunk_pagecontent = [chunk.page_content for chunk in chunk_of_chunks]
         embeddings = ollama_client.embed(
