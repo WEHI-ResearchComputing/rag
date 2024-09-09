@@ -36,7 +36,7 @@ DEFAULT_EMBEDDING_MODEL = "nomic_embed_text"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 
 
-def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, prompt_template_path: str) -> None:
+def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, rag_template_path: str, prompt_template_path: str) -> None:
     """
     Main function to launch the Gradio application for WEHI Local GPT.
 
@@ -48,7 +48,7 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, pr
         ood (bool): Flag to determine if the application should run as an Open OnDemand (OOD) app.
     """
 
-    db = embeddings_db(f"http://{ollama_host}:{ollama_port}", prompt_template_path)
+    db = embeddings_db(f"http://{ollama_host}:{ollama_port}", rag_template_path, prompt_template_path)
 
     theme = gradio.themes.Default(
         primary_hue="blue", secondary_hue="green", font=["Arial", "sans-serif"]
@@ -141,7 +141,7 @@ class embeddings_db:
     Class to handle embedding database operations.
     """
 
-    def __init__(self, ollama_url: str = DEFAULT_OLLAMA_URL, prompt_template_path: str = "prompt_template.txt"):
+    def __init__(self, ollama_url: str = DEFAULT_OLLAMA_URL, rag_prompt_template_path: str = "rag_prompt_template.txt", prompt_template_path: str = "prompt_template.txt"):
         """
         Initialize the embeddings_db class.
 
@@ -149,6 +149,7 @@ class embeddings_db:
             ollama_url (str): The URL of the Ollama server.
         """
         self.ollama_url = ollama_url
+        self.rag_prompt_template_path = rag_prompt_template_path
         self.prompt_template_path = prompt_template_path
 
     def add_data(
@@ -388,16 +389,10 @@ class embeddings_db:
             results = db.similarity_search_with_score(query_text, k=5)
 
             context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-            prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
+            prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.rag_prompt_template_path))
             prompt = prompt_template.format(context=context_text, question=query_text, history=history_text)
         else:
-            prompt_template = ChatPromptTemplate.from_template("""History:
-{history}
-
-Above is our previous chat history, which may be truncated.
-
-Answer the below question considering the above history:
-{question}""")
+            prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
             prompt = prompt_template.format(question=query_text, history=history_text)
 
         print(prompt)
@@ -483,6 +478,12 @@ def cli() -> None:
     )
     parser.add_argument("--ood", action="store_true", help="Run chatbot as OOD app.")
     parser.add_argument(
+        "--rag-prompt-template",
+        type=str,
+        help="Path to file with prompt template used for RAG.",
+        default="rag_prompt_template.txt"
+    )
+    parser.add_argument(
         "--prompt-template",
         type=str,
         help="Path to file with prompt template.",
@@ -490,7 +491,7 @@ def cli() -> None:
     )
     args = parser.parse_args()
 
-    main(args.host, args.port, args.ollama_host, args.ollama_port, args.ood, args.prompt_template)
+    main(args.host, args.port, args.ollama_host, args.ollama_port, args.ood, args.rag_prompt_template, args.prompt_template)
 
 if __name__ == "__main__":
     cli()
