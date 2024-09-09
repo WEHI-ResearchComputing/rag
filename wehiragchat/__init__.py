@@ -370,6 +370,8 @@ class embeddings_db:
         Yields:
             str: Progress messages and the final response.
         """
+        # populate template with context and user's query
+        history_text = "\n\n".join([f"User: {ex[0]}\n\nAssistant: {ex[1]}\n\n" for ex in history])
 
         if use_rag:
             # Prepare the DB.
@@ -381,19 +383,10 @@ class embeddings_db:
             except Exception as e:
                 yield f"❌ Something went wrong when trying to retrieve data from the RAG! Error message:\n{str(e)}"
                 return
-        
-        print(query_text)
-
-        if use_rag:
 
             # Search the DB.
             results = db.similarity_search_with_score(query_text, k=5)
 
-            print(results)
-
-        # populate template with context and user's query
-        history_text = "\n\n".join([f"User: {ex[0]}\n\nAssistant: {ex[1]}\n\n" for ex in history])
-        if use_rag:
             context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
             prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
             prompt = prompt_template.format(context=context_text, question=query_text, history=history_text)
