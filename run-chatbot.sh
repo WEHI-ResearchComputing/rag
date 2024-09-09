@@ -14,4 +14,4 @@ ollama_tmp=/vast/scratch/users/$USER/tmp
 apptainer run \
      -B $TMPDIR:/tmp \
      -B /vast,/stornext \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 --ollama-host $ollama_host
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.1 --ollama-host $ollama_host

@@ -19,7 +19,7 @@ from langchain_community.llms.ollama import Ollama
 import getpass, os, math
 from typing import Generator
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # These are models that fit in P100s
 AVAILABLE_EMBEDDING_MODELS = [
