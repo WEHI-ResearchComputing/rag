@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH -c 12 --mem 24G 
-#SBATCH --gres gpu:1 -p gpuq
+#SBATCH -c 12 --mem 30G 
+#SBATCH --gres gpu:A30:1 -p gpuq
 #SBATCH --output ollama-server.log
-#SBATCH --prefer P100 # use P100s for now
 
 set -eu
 
 module purge
-module load apptainer/1.2.3
+module load apptainer/1.3.3
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
