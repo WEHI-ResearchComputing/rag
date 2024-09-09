@@ -1,7 +1,7 @@
 import argparse
 import os
 import shutil
-from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 from extras.bibtex import BibtexLoader
 from utils.pubmed import PubmedXmlLoader
@@ -54,7 +54,7 @@ def check_documents(data_path, jobs):
     # potential files
     files = []
     # check html, bib, xml. Don't check pdfs until alternative to PyPDFDirectoryLoader is used.
-    for patterns in ("*.html", "*.bib", "*.xml"):
+    for patterns in ("*.html", "*.bib", "*.xml", "*.pdf"):
         files += glob.glob(os.path.join(data_path, patterns))
 
     print(f"🔎 Discovered {len(files)} files in the data folder.")
@@ -92,12 +92,8 @@ def parse_documents(loader, docfiles: list[str], jobs: int):
 
 def load_documents(docs2load: list[str], data_path: str, jobs: int):
     # load PDFs
-    document_loader = PyPDFDirectoryLoader(data_path)
-    loaded_docs = document_loader.load()
-    # ensure hashfield is in metadata
-    # needs to be implemented properly later
-    for i in range(len(loaded_docs)):
-        loaded_docs[i].metadata["file_sha256"] = ""
+    pdfdocs = [doc for doc in docs2load if ".pdf" in doc]
+    loaded_docs = parse_documents(PyPDFLoader, pdfdocs, jobs)
     
     # load HTMLs
     htmldocs = [doc for doc in docs2load if ".html" in doc ]
