@@ -27,7 +27,7 @@ AVAILABLE_EMBEDDING_MODELS = [
     "nomic-embed-text",
     "snowflake-arctic-embed:22m",
 ]
-AVAILABLE_LLMS = ["mistral", "mistral-nemo", "phi3:mini", "phi3:medium"]
+AVAILABLE_LLMS = ["mistral", "mistral-nemo", "phi3:mini", "phi3:medium", "yi:9b", "yi:34b"]
 AVAILABLE_FILETYPES = [".pdf", ".html", ".bib", ".xml"]  # update these as more doc loaders are added
 
 DEFAULT_RAGDB_PATH = f"/vast/scratch/users/{getpass.getuser()}/rag_chromadb"
@@ -88,7 +88,7 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, pr
                 with gradio.Row():
                     # currently manually specified
                     llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1, info="The Large Language Model to use. Send an email to support@wehi.edu.au to add more models. Models can be chosen from https://ollama.com/library.")
-                    use_rag_checkbox = gradio.Checkbox(value=True, label="Use RAG?", interactive=False, info="If yes, your documents will be used to supplement your query. If no, you send your query as-is to the LLM.")
+                    use_rag_checkbox = gradio.Checkbox(value=True, label="Use RAG?", info="If yes, your documents will be used to supplement your query. If no, you send your query as-is to the LLM.")
                     llmtemp = gradio.Textbox(value=0.8, label="LLM Temperature", interactive=False, info="Controls the \"creativity\" of the LLM. Lower values lead to less creative, but more reproducible responses.")
 
                 gradio.ChatInterface(
@@ -96,7 +96,7 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, pr
                     undo_btn=None,
                     clear_btn=None,
                     fill_width=True,
-                    additional_inputs=[llm_model, embedding_model, db_path],
+                    additional_inputs=[llm_model, embedding_model, db_path, use_rag_checkbox],
                     chatbot=gradio.Chatbot(scale=1, show_copy_button=True, height="70vh", label="WEHI Local GPT", placeholder="👋 Let's start chatting!"),
                 )
     # launch app. OOD needs the root_path changed
@@ -354,6 +354,7 @@ class embeddings_db:
         llm_model: str = "mistral",
         embedding_model: str = "nomic-embed-text",
         db_path: str = "chroma",
+        use_rag: bool = True,
     ) -> Generator[str, None, None]:
         """
         Query the RAG (Retrieve and Generate) model for an answer to the provided query.
@@ -364,40 +365,47 @@ class embeddings_db:
             llm_model (str): The LLM model to be used.
             embedding_model (str): The embedding model to be used.
             db_path (str): Path to the Chroma database.
+            use_rag (bool): Whether to retrieve from the RAG.
 
         Yields:
             str: Progress messages and the final response.
         """
 
-        # Prepare the DB.
-        embedding_function = get_embeddings(self.ollama_url, embedding_model)
-        try:
-            db = Chroma(
-                persist_directory=db_path, embedding_function=embedding_function
-            )
-        except Exception as e:
-            yield f"❌ Something went wrong when trying to retrieve data from the RAG! Error message:\n{str(e)}"
-            return
+        if use_rag:
+            # Prepare the DB.
+            embedding_function = get_embeddings(self.ollama_url, embedding_model)
+            try:
+                db = Chroma(
+                    persist_directory=db_path, embedding_function=embedding_function
+                )
+            except Exception as e:
+                yield f"❌ Something went wrong when trying to retrieve data from the RAG! Error message:\n{str(e)}"
+                return
         
         print(query_text)
 
-        import regex
-        if regex.search(r'\p{Han}', query_text):
-            model = Ollama(base_url=self.ollama_url, model="yi:34b", num_ctx=4096)
-            query_text = model.invoke(f"translate this to english, returning the translation only. If there is no suitable English translation, e.g. proper nouns, return the pinyin only: {query_text}")
-        
-        print(query_text)
+        if use_rag:
 
-        # Search the DB.
-        results = db.similarity_search_with_score(query_text, k=5)
+            # Search the DB.
+            results = db.similarity_search_with_score(query_text, k=5)
 
-        print(results)
+            print(results)
 
         # populate template with context and user's query
-        context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
         history_text = "\n\n".join([f"User: {ex[0]}\n\nAssistant: {ex[1]}\n\n" for ex in history])
-        prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
-        prompt = prompt_template.format(context=context_text, question=query_text, history=history_text)
+        if use_rag:
+            context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+            prompt_template = ChatPromptTemplate.from_template(self._read_prompt_template(self.prompt_template_path))
+            prompt = prompt_template.format(context=context_text, question=query_text, history=history_text)
+        else:
+            prompt_template = ChatPromptTemplate.from_template("""History:
+{history}
+
+Above is our previous chat history, which may be truncated.
+
+Answer the below question considering the above history:
+{question}""")
+            prompt = prompt_template.format(question=query_text, history=history_text)
 
         print(prompt)
 
@@ -414,8 +422,9 @@ class embeddings_db:
             return
 
         # append sources
-        sources = self.list2md([doc.metadata.get("id", None) for doc, _score in results])
-        response_text += f"\nSources:\n{sources}"
+        if use_rag:
+            sources = self.list2md([doc.metadata.get("id", None) for doc, _score in results])
+            response_text += f"\nSources:\n{sources}"
         yield response_text
 
     @staticmethod
