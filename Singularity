@@ -5,9 +5,9 @@ stage: devel
 %post
   apt-get update
   apt-get install -y curl git
-  pip install git+https://github.com/wehi-researchcomputing/rag.git@gradio --no-cache
-  curl -L https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama
-  chmod +x /usr/local/bin/ollama
+  pip install git+https://github.com/wehi-researchcomputing/rag.git --no-cache
+  curl -L https://github.com/ollama/ollama/releases/download/v0.3.10/ollama-linux-amd64.tgz -o /tmp/ollama-linux-amd64.tgz
+  tar -C /usr -xzf /tmp/ollama-linux-amd64.tgz
 
 
 # Production stage
@@ -20,7 +20,10 @@ stage: prod
 
 %labels
   AUTHOR Edward Yang
-  VERSION 0.1.0
+  VERSION 0.1.1
+  OLLAMA_VERSION 0.3.10
+  ARCH amd64
+  GPU_ARCH cuda
 
 %runscript
   exec wehiragchat "$@"

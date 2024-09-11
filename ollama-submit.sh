@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH -c 12 --mem 24G 
-#SBATCH --gres gpu:1 -p gpuq
+#SBATCH -c 12 --mem 30G 
+#SBATCH --gres gpu:A30:1 -p gpuq
 #SBATCH --output ollama-server.log
-#SBATCH --prefer P100 # use P100s for now
 
 set -eu
 
 module purge
-module load apptainer/1.2.3
+module load apptainer/1.3.3
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
@@ -38,5 +37,5 @@ apptainer exec --nv \
      --env OLLAMA_HOST=$SLURM_NODELIST \
      --env OLLAMA_MODELS=$ollama_models \
      --env OLLAMA_MAX_LOADED_MODELS=2 \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 \
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.1 \
      	ollama serve

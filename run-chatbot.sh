@@ -6,7 +6,7 @@ set -eu
 ollama_host=$1
 
 module purge
-module load apptainer/1.2.3
+module load apptainer/1.3.3
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
@@ -14,4 +14,4 @@ ollama_tmp=/vast/scratch/users/$USER/tmp
 apptainer run \
      -B $TMPDIR:/tmp \
      -B /vast,/stornext \
-     oras://ghcr.io/wehi-researchcomputing/rag:0.1.0 --ollama-host $ollama_host
+     oras://ghcr.io/wehi-researchcomputing/rag:0.1.1 --ollama-host $ollama_host

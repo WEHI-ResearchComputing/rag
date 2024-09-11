@@ -2,10 +2,6 @@ History:
 {history}
 
 Above is our previous chat history, which may be truncated.
-Below is additional context to be used to answer the question.
 
-Context:
-{context}
-
-Answer the below question considering the above context and history, but prioritising the context if it's more relevant:
+Answer the below question considering the above history:
 {question}
