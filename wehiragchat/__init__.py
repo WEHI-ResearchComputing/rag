@@ -48,18 +48,21 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, ra
         ood (bool): Flag to determine if the application should run as an Open OnDemand (OOD) app.
     """
 
+    # connect to embedding database
     db = embeddings_db(f"http://{ollama_host}:{ollama_port}", rag_template_path, prompt_template_path)
 
+    # setup UI colour scheme
     theme = gradio.themes.Default(
         primary_hue="blue", secondary_hue="green", font=["Arial", "sans-serif"]
     )
 
+    # start defining UI structure
     with gradio.Blocks(title="WEHI Local GPT", theme=theme, fill_height=True, fill_width=True) as demo:
-        # group together embedding and rag related items
-        # with gradio.Group():
+        # Put everything into a single row
         with gradio.Row(equal_height=False):
+            # embedding management e.g. add files and embedding model
+            # on left side
             with gradio.Column(scale=1, variant="compact"):
-                # with gradio.Group():
                 db_path = gradio.Textbox(
                     label="Embedding Database Path", value=DEFAULT_RAGDB_PATH,
                     scale=1
@@ -85,6 +88,7 @@ def main(host: str, port: int, ollama_host: str, ollama_port: int, ood: bool, ra
             )
             # add chatbot right of embedding config
             with gradio.Column(scale=5, variant="compact"):
+                # add row with llm config above the chatbox
                 with gradio.Row():
                     # currently manually specified
                     llm_model = gradio.Dropdown(AVAILABLE_LLMS, value="mistral", label="LLM", scale=1, info="The Large Language Model to use. Send an email to support@wehi.edu.au to add more models. Models can be chosen from https://ollama.com/library.")
