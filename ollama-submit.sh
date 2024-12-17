@@ -6,7 +6,7 @@
 set -eu
 
 module purge
-module load apptainer/1.3.3
+module load apptainer/1.3.5
 
 ollama_models=/vast/scratch/users/$USER/ollama-models
 ollama_tmp=/vast/scratch/users/$USER/tmp
